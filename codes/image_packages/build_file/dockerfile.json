@@ -1,0 +1,31 @@
+{"machine_learning":
+	{"sklearn":"default",
+	"scikit-learn":"0.19.2"
+	}
+,"music":
+	{"dtw":"default",
+	"librosa":"default",
+	"pyaudio":"default"
+	}
+,"image":
+	{"pillow":"default"
+	}
+,"video":
+	{"scikit-video":"default"
+	}
+,"map_reduce":
+	{"mrjob":"default"
+	}
+,"markdown2html":
+	{"markdown":"default"
+	}
+,"k-means":
+	{"sklearn":"default"
+	}
+,"linpack":{}
+,"matmul":{}
+,"couchdb_test":{}
+,"network":{}
+}
+
+
