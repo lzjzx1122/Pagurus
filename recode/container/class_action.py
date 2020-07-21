@@ -43,6 +43,7 @@ class action_create():
         self.lender_instance_info = [None for index in range(share_count)]
 #对应每个action的信息，start_port_number对应当前action可创建容器的对应起始端口号，max_container为最大可创建容器数量（则当前容器可开放的端口号对应为[start_port_number,start_port_number_max_containers]）
 #，user_path则为action文件存储的位置，share_count为当前可共享的容器数量。
+
     def container_create(self,startup_type,port_number):
         if startup_type == 'repack':
             temp_container = self.client.containers.run('lzjzx1122/python3action_pack_'+self.action_name,command = 'python3 /actionProxy/apigateway.py',ports = {'18080/tcp': port_number},detach = True,stdin_open = True)
@@ -61,7 +62,3 @@ class action_create():
             except requests.exceptions.ConnectionError:
                 pass
             time.sleep(0.01)
-
-packages_info_test = packages_info()
-packages_info_test.update('video','/home/openwhisk/pagurus/recode/actions/video')
-print(packages_info_test.packages,packages_info_test.dockerfile)      
