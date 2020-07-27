@@ -10,22 +10,23 @@ class container_info():
         self.container_id = container.id
         self.port_number = port_number
         self.out = ''
+        self.post_status = -1
         self.start_time = time.time()
-#对应每个容器的信息，port_number为当前容器对应的端口号，start_time为容器创建时间
+#对应每个容器的信息，port_number为当前容器对应的端口号，start_time为容器创建时间,post_status为当前容器状态，-1未创建，0不可用，1可用。
 
 class packages_info():
     def __init__(self):
         self.packages = {}
-        self.dockerfile = {}
+        self.docker_file = {}
 #对应每个action依赖包的信息，packages为容器中实际增加的包，dockerfile为用户指定安装的包
 
     def update(self,action_name,user_path):
-        temp_packages=open(user_path+'/buildfile/packages.json',encoding='utf-8')
+        temp_packages=open(user_path+'/build_file/packages.json',encoding='utf-8')
         temp_packages_content=temp_packages.read()
-        temp_dockerfile=open(user_path+'/buildfile/dockerfile.json',encoding='utf-8')
-        temp_dockerfile_content=temp_dockerfile.read()
+        temp_docker_file=open(user_path+'/build_file/docker_file.json',encoding='utf-8')
+        temp_docker_file_content=temp_docker_file.read()
         self.packages = json.loads(temp_packages_content)
-        self.dockerfile = json.loads(temp_dockerfile_content)
+        self.docker_file = json.loads(temp_docker_file_content)
 
 class action_create():
     def __init__(self,port_number,user_path,action_name,max_containers,share_count):
@@ -44,7 +45,7 @@ class action_create():
 #对应每个action的信息，start_port_number对应当前action可创建容器的对应起始端口号，max_container为最大可创建容器数量（则当前容器可开放的端口号对应为[start_port_number,start_port_number_max_containers]）
 #，user_path则为action文件存储的位置，share_count为当前可共享的容器数量。
 
-    def container_create(self,startup_type,port_number):
+    def container_create(self,port_number,startup_type='default'):
         if startup_type == 'repack':
             temp_container = self.client.containers.run('lzjzx1122/python3action_pack_'+self.action_name,command = 'python3 /actionProxy/apigateway.py',ports = {'18080/tcp': port_number},detach = True,stdin_open = True)
             temp_action_info = container_info(temp_container,port_number)
