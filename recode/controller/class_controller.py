@@ -27,20 +27,36 @@ class node_controller():
                 self.action_list.pop(k1)
                 self.renter_lender_info.pop(k1)
 
-    def renter_lender_info_add(self, renter_name,lender_name_dict):
-        self.renter_lender_info.update({renter_name:lender_name_dict})
+    def renter_lender_info_add(self,lender,renter_dict):
+        for (k1,v1) in renter_dict.items():
+            if k1:
+                if k1 not in self.renter_lender_info.keys():
+                    self.renter_lender_info.update({k1:{lender:v1}})
+                else:self.renter_lender_info[k1].update({lender:v1})
+            else:pass
 
     def action_repack(self,action_name,docker_file_json,packages_json,share_action_number=2):
+        self.action_info_update()
         self.repack_controller.packages_reload()
         lender,renter = self.repack_controller.action_repack(action_name,docker_file_json,packages_json,share_action_number)
         self.repack_controller.image_save()
+        self.renter_lender_info_add(lender,renter)
         return lender, renter
 
-    def action_image_save(self):
-        pass
+    def action_scheduler(self,action_obj):
+        if action_obj.action_name in self.renter_lender_info.keys():
+            lender_obj = max(self.renter_lender_info[action_obj.action_name], key=self.renter_lender_info[action_obj.action_name].get) 
+            if (self.action_list[lender_obj].share_count > 0) and (action_obj.current_containers < action_obj.max_containers):
+                action_obj.renter_instance_info = self.action_list[lender_obj].lender_instance_info[self.action_list[lender_obj].share_count-1]
+                self.action_list[lender_obj].lender_instance_info[self.action_list[lender_obj].share_count-1] = None
+                self.action_list[lender_obj].share_count -= 1
+                self.action_list[lender_obj].current_containers -= 1
+                action_obj.current_containers += 1
+        else:
 
-    def action_scheduler(self):
-        pass
-        
+            
 test = node_controller(1)
-test.action_repack('image',{"pillow":"default"},{"pillow":"default"},3)
+test.action_repack('image',{"pillow":"default"},{"pillow":"default","numpy":"default"},3)
+test.action_repack('linpack',{"pillow":"default"},{"numpy":"default"},3)
+test.action_scheduler('float_operation')
+print(test.renter_lender_info)

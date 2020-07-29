@@ -29,6 +29,8 @@ class repack_controller():
         self.all_packages.pop(self.action_name)
         self.all_docker_file.pop(self.action_name)
         self.share_action_number = share_action_number
+        self.renter = {}
+        self.candidates = {}
         for (k1,v1) in self.packages.items():
                 for (k2,v2) in list(self.all_packages.items()):
                     if (k1 in v2) and (v2[k1] != v1):
