@@ -48,11 +48,12 @@ class node_controller():
             lender_obj = max(self.renter_lender_info[action_obj.action_name], key=self.renter_lender_info[action_obj.action_name].get) 
             if (self.action_list[lender_obj].share_count > 0) and (action_obj.current_containers < action_obj.max_containers):
                 action_obj.renter_instance_info = self.action_list[lender_obj].lender_instance_info[self.action_list[lender_obj].share_count-1]
+                #加容器状态检查
                 self.action_list[lender_obj].lender_instance_info[self.action_list[lender_obj].share_count-1] = None
                 self.action_list[lender_obj].share_count -= 1
                 self.action_list[lender_obj].current_containers -= 1
                 action_obj.current_containers += 1
-        else:
+        else:pass
 
             
 test = node_controller(1)
