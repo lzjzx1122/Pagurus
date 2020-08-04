@@ -4,6 +4,7 @@ import time
 import requests
 import json
 from threading import Thread
+from idle_container_algorithm import idle_status_check
 
 def asynci(f):
         def wrapper(*args, **kwargs):
@@ -17,7 +18,7 @@ class container_info():
         self.container_id = container.id
         self.port_number = port_number
         self.out = ''
-        self.post_status = -1
+        self.post_status = False
         self.start_time = time.time()
         self.idle_time = -1
 #对应每个容器的信息，port_number为当前容器对应的端口号，start_time为容器创建时间,post_status为当前容器状态，-1未创建，0不可用，1可用。
@@ -66,8 +67,11 @@ class action_create():
         while True:
             try:
                 request = requests.get('http://0.0.0.0:' + str(port_number) + '/checkstatus')
-
                 if request.status_code == 200:
+                    if startup_type == 'repack':
+                        self.lender_instance_info[port_number-self.start_port_number].post_status = True
+                    else:
+                        self.instance_info[port_number-self.start_port_number].post_status = True
                     break
             except requests.exceptions.ConnectionError:
                 pass
@@ -115,12 +119,22 @@ class action_create():
                         break
         time.sleep(5)
 
-    def lender_generate(self):
-        if (self.lender_instance_info.count(None) < len(self.lender_instance_info)) and (self.instance_info.count(None) < len(self.lender_instance_info)):
-            for instance in self.instance_info:
+    def lender_container(self):
+        for instance in self.instance_info:
                 if instance:
                     replace_port_number = instance.port_number 
                     self.container_create(replace_port_number,startup_type='repack')
                     self.container_remove_by_port(replace_port_number,recycle_type='executant')
         return self.action_name
+        
+    def idle_identify_and_lender_generate(self,lambd, mu, Qos_time, Qos_value_cal, Qos_value_requirement = 0.95):
+        while True:
+            if (self.lender_instance_info.count(None) > 0) and (self.instance_info.count(None) < len(self.instance_info)):
+                idle_sign = idle_status_check(lambd, self.current_containers, mu, Qos_time, Qos_value_cal, Qos_value_requirement)
+                if idle_sign:
+                    self.lender_container()
+            else: pass
+            time.sleep(5)
+        return True
+
         
