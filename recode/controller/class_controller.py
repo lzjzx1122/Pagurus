@@ -40,6 +40,7 @@ class node_controller():
         self.repack_controller.packages_reload()
         lender,renter = self.repack_controller.action_repack(action_name,docker_file_json,packages_json,share_action_number)
         self.repack_controller.image_save()
+        #inform intra to generate lender container
         self.renter_lender_info_add(lender,renter)
         return lender, renter
 

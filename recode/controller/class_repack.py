@@ -82,8 +82,9 @@ class repack_controller():
                     COPY requirements.txt /\n\n\
                     RUN pip3 install -r requirements.txt'.format(self.action_name))
         #os.system('cd {} && docker build -t lzjzx1122/python3action_pack_{} .'.format(self.save_path, self.action_name))
+        
 
-
+        #加一个与原文件比较，若相同，则跳过此步骤。
 
 
 # test_name = 'image'

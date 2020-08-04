@@ -132,6 +132,7 @@ class action_create():
             if (self.lender_instance_info.count(None) > 0) and (self.instance_info.count(None) < len(self.instance_info)):
                 idle_sign = idle_status_check(lambd, self.current_containers, mu, Qos_time, Qos_value_cal, Qos_value_requirement)
                 if idle_sign:
+                    #inform controller to repack and return repack image
                     self.lender_container()
             else: pass
             time.sleep(5)
