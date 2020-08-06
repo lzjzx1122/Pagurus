@@ -24,8 +24,7 @@ class node_controller():
         self.action_object = {} #{"action_name": [action_object, max_containers]}
         self.repack_controller = repack_controller()
         self.renter_lender_info = {} #{"renter A": {lender B: cos, lender C:cos}}
-        self.action_counter = {}
-    
+        
     def action_info_update(self,action_obj=None):
         if action_obj and (action_obj.action_name not in self.action_object.keys()):
             self.action_object.update({action_obj.action_name:action_obj})
@@ -103,7 +102,6 @@ def listen():
         obj = action_create(port_number_start, user_path, action_name, max_containers, max_share_count)
         port_number_start += max_containers
         test.action_object[action_name] = [obj, max_containers]
-        test.action_counter[action_name] = 0
         obj.first_arrival_time = arrival_time
         obj.total_requests = 1
     else:
@@ -138,8 +136,7 @@ while True:
         obj.Qos_satisfied_requests += (end_time - arrival_time <= obj.Qos_time)
         obj.exec_time += end_time - begin_time
 
-        test.action_counter[action_name] += 1
-        if test.action_counter[action_name] % 10 == 1:
+        if obj.finished_requests % 10 == 1:
             obj.mu = obj.finished_requests / obj.exec_time
             obj.Qos_value_cal = obj.Qos_satisfied_requests / obj.finished_requests
             
