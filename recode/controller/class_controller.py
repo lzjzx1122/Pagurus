@@ -2,8 +2,12 @@ import os
 import docker
 import time
 import asyncio
+import queue
+import couchdb
 from threading import Thread
 from class_repack import repack_controller 
+from flask import Flask, request
+from class_action import action_create
 #from multiprocessing import Value,Process,Array
 
 def asynci(f):
@@ -18,6 +22,7 @@ class node_controller():
         self.repack_controller = repack_controller()
         self.action_list = {} #{"renter A":A_obj}
         self.renter_lender_info = {} #{"renter A": {lender B: cos, lender C:cos}}
+        self.action_object = {} #{"action_name": action_object}
     
     def action_info_update(self,action_obj=None):
         if action_obj and (action_obj.action_name not in self.action_list.keys()):
@@ -62,3 +67,70 @@ test.action_repack('image',{"pillow":"default"},{"pillow":"default","numpy":"def
 test.action_repack('linpack',{"pillow":"default"},{"numpy":"default"},3)
 test.action_scheduler('float_operation')
 print(test.renter_lender_info)
+
+
+# A couchdb to store the results of action.
+couch = couchdb.Server("http://openwhisk:openwhisk@localhost:5984/")
+db = couch.create("action_results")
+# A queue to store user requests.
+action_queue = queue.Queue()
+# a Flask instance.
+proxy = Flask(__name__)
+action_count = 0
+user_path = "/home/openwhisk/pagurus/actions"
+port_number_start = 18080 # not sure!
+max_containers = 10 # not sure!
+share_count = 2 # not sure!
+
+# listen user requests
+@proxy.route('/listen', methods=['POST'])
+def listen():
+    inp = request.get_json(force=True, silent=True)
+    action_name = inp['action_name']
+    arrival_time = time.time()
+    
+    obj = None
+    if action_name not in test.action_object:
+        # action1: [port_number_start, port_number_start + max_containers)
+        # action2: [port_number_start + max_containers, port_number_start + max_containers * 2)
+        # ......
+        # actionN: [port_number_start + max_containers * (N - 1), port_number_start + max_containers * N)
+        obj = action_create(port_number_start + action_count * max_containers, user_path, action_name, max_containers, share_count)
+        action_count += 1
+        test.action_object[action_name] = obj
+        obj.first_arrival_time = arrival_time
+        obj.total_requests = 1
+    else:
+        obj = test.action_object[action_name]
+        obj.total_requests += 1
+        obj.lambd = (arrival_time - obj.first_arrival_time) / (obj.total_requests - 1)
+
+    action_queue.put({'action_name': action_name, 'arrival_time': arrival_time})
+
+
+#def view_func(doc):
+#    yield doc['end_time'], doc
+
+#for i in range(10):
+#    rand = random.randint(1, 100)
+#    doc = {'action_name': 'test', 'arrival_time': rand, 'begin_time': rand, 'end_time': rand, 'duration': rand, 'result': rand}
+#    db.save(doc)
+
+# Run forever.
+while True:
+    for id in db:
+        doc = db[id]
+        action_name = doc['action_name']
+        arrival_time = doc['arrival_time']
+        begin_time = doc['begin_time']
+        end_time = doc['end_time']
+        result = doc['result']
+
+        obj = test.action_object[anction_name]
+        obj.finished_requests += 1
+        obj.Qos_satisfied_requests += (end_time - arrival_time <= obj.Qos_time)
+        obj.Qos_value_cal = obj.Qos_satisfied_requests / obj.finished_requests
+        obj.exec_time += end_time - start_time
+        obj.mu = obj.finished_requests / obj.exec_time
+        
+        db.delete(doc)
