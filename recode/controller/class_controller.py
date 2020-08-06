@@ -21,10 +21,10 @@ def asynci(f):
 class node_controller():
     def __init__(self,node_id):
         self.node_id = node_id
-        self.action_object = {} #{"action_name": action_object}
+        self.action_object = {} #{"action_name": [action_object, max_containers]}
         self.repack_controller = repack_controller()
         self.renter_lender_info = {} #{"renter A": {lender B: cos, lender C:cos}}
-        
+        self.action_counter = {}
     
     def action_info_update(self,action_obj=None):
         if action_obj and (action_obj.action_name not in self.action_object.keys()):
@@ -84,9 +84,7 @@ action_queue = queue.Queue()
 proxy = Flask(__name__)
 user_path = "/home/openwhisk/pagurus/actions"
 port_number_start = 18080 # not sure!
-max_containers = 10 # not sure!
 max_share_count = 2 # not sure!
-
 
 # listen user requests
 @proxy.route('/listen', methods=['POST'])
@@ -97,15 +95,19 @@ def listen():
     obj = None
     if action_name not in test.action_object:
         # action1: [port_number_start, port_number_start + max_containers_1)
-        # action2: [port_number_start + max_containers_1, port_number_start + max_containers_1 + max_containers_2)
+        # action2: [port_number_start + max_containers_1, port_number_start + max_containers_[1, 2])
         # ......
-        # actionN: [port_number_start + max_containers * (N - 1), port_number_start + max_containers * N)
-        obj = action_create(port_number_start + len(test.action_object) * max_containers, user_path, action_name, max_containers, max_share_count)
-        test.action_object[action_name] = obj
+        # actionN: [port_number_start + max_containers_[1, 2, ..., N-1], port_number_start + max_containers_[1, 2, ..., N])
+        max_containers = inp['max_containers']
+        # user must apply max_containers in the first request
+        obj = action_create(port_number_start, user_path, action_name, max_containers, max_share_count)
+        port_number_start += max_containers
+        test.action_object[action_name] = [obj, max_containers]
+        test.action_counter[action_name] = 0
         obj.first_arrival_time = arrival_time
         obj.total_requests = 1
     else:
-        obj = test.action_object[action_name]
+        obj = test.action_object[action_name][0]
         obj.total_requests += 1
         if obj.total_requests % 10 == 1:
             obj.lambd = (arrival_time - obj.first_arrival_time) / (obj.total_requests - 1)
@@ -131,11 +133,14 @@ while True:
         end_time = doc['end_time']
         result = doc['result']
 
-        obj = test.action_object[action_name]
+        obj = test.action_object[action_name][0]
         obj.finished_requests += 1
         obj.Qos_satisfied_requests += (end_time - arrival_time <= obj.Qos_time)
-        obj.Qos_value_cal = obj.Qos_satisfied_requests / obj.finished_requests
         obj.exec_time += end_time - begin_time
-        obj.mu = obj.finished_requests / obj.exec_time
-        
+
+        test.action_counter[action_name] += 1
+        if test.action_counter[action_name] % 10 == 1:
+            obj.mu = obj.finished_requests / obj.exec_time
+            obj.Qos_value_cal = obj.Qos_satisfied_requests / obj.finished_requests
+            
         db.delete(doc)
