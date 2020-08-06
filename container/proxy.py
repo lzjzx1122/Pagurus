@@ -2,6 +2,7 @@ import flask
 import zipfile
 import shutil
 import os
+import time
 from flask import Flask, request, jsonify
 from gevent.pywsgi import WSGIServer
 
@@ -51,7 +52,7 @@ class ActionRunner:
 
 proxy = Flask(__name__)
 proxy.status = 'new'
-# proxy.debug = False
+proxy.debug = False
 runner = ActionRunner()
 
 @proxy.route('/status', methods=['GET'])
@@ -77,10 +78,20 @@ def run():
     proxy.status = 'run'
 
     inp = request.get_json(force=True, silent=True)
+    # record the execution time
+    start = time.time()
     out = runner.run(inp)
+    end = time.time()
+
+    data = {
+        "start_time": start,
+        "end_time": end,
+        "duration": end - start,
+        "result": out
+    }
 
     proxy.status = 'ok'
-    return out
+    return data
 
 if __name__ == '__main__':
     server = WSGIServer(('0.0.0.0', 5000), proxy)

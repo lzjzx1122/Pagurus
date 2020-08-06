@@ -9,7 +9,7 @@ RUN mkdir /proxy && \
     mkdir /proxy/actions
 
 # copy the proxy server
-COPY ActionRunner.py /proxy/
+COPY proxy.py /proxy/
 
 # the work dir of proxy is under exec/
 WORKDIR /proxy/exec
@@ -25,4 +25,4 @@ EXPOSE 5000
 
 RUN pip install --no-cache-dir gevent flask
 
-CMD [ "python", "/proxy/ActionRunner.py" ]
+CMD [ "python", "/proxy/proxy.py" ]
