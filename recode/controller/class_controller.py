@@ -4,6 +4,7 @@ import time
 import asyncio
 import queue
 import couchdb
+import random
 from threading import Thread
 from class_repack import repack_controller 
 from flask import Flask, request
@@ -71,66 +72,67 @@ test = node_controller(1)
 test.action_repack('image',{"pillow":"default"},{"pillow":"default","numpy":"default"},3)
 test.action_repack('linpack',{"pillow":"default"},{"numpy":"default"},3)
 #test.action_scheduler('float_operation')
-print(test.renter_lender_info)
-
+#print(test.renter_lender_info)
 
 # A couchdb to store the results of action.
 couch = couchdb.Server("http://openwhisk:openwhisk@localhost:5984/")
-db = couch.create("action_results")
+db_results = couch.create("action_results")
+db_requests = couch["action_requests"]
 # A queue to store user requests.
 action_queue = queue.Queue()
 # a Flask instance.
 proxy = Flask(__name__)
-user_path = "/home/openwhisk/pagurus/actions"
+user_path = "../../codes/image_packages"
 port_number_start = 18080 # not sure!
 max_share_count = 2 # not sure!
+   
 
-# listen user requests
-@proxy.route('/listen', methods=['POST'])
-def listen():
-    inp = request.get_json(force=True, silent=True)
-    action_name = inp['action_name']
-    arrival_time = time.time()
-    obj = None
-    if action_name not in test.action_object:
-        # action1: [port_number_start, port_number_start + max_containers_1)
-        # action2: [port_number_start + max_containers_1, port_number_start + max_containers_[1, 2])
-        # ......
-        # actionN: [port_number_start + max_containers_[1, 2, ..., N-1], port_number_start + max_containers_[1, 2, ..., N])
-        max_containers = inp['max_containers']
-        # user must apply max_containers in the first request
-        obj = action_create(port_number_start, user_path, action_name, max_containers, max_share_count)
-        port_number_start += max_containers
-        test.action_object[action_name] = [obj, max_containers]
-        obj.first_arrival_time = arrival_time
-        obj.total_requests = 1
-    else:
-        obj = test.action_object[action_name][0]
-        obj.total_requests += 1
-        if obj.total_requests % 10 == 1:
-            obj.lambd = (arrival_time - obj.first_arrival_time) / (obj.total_requests - 1)
-
-    action_queue.put({'action_name': action_name, 'arrival_time': arrival_time})
-
-
-#def view_func(doc):
-#    yield doc['end_time'], doc
-
-#for i in range(10):
-#    rand = random.randint(1, 100)
-#    doc = {'action_name': 'test', 'arrival_time': rand, 'begin_time': rand, 'end_time': rand, 'duration': rand, 'result': rand}
-#    db.save(doc)
-
-# Run forever.
-while True:
-    for id in db:
-        doc = db[id]
+while True:    
+    for_count = 0
+    for id in db_requests:
+        for_count += 1
+        doc = db_requests[id]
+        action_name = doc['action_name']
+        max_containers = doc['max_containers']
+        arrival_time = doc['arrival_time']
+        print("Request ", "action_name:",action_name, " ", "max_containers:",max_containers, " ", "arrival_time:",arrival_time)
+        if action_name not in test.action_object:
+            # action1: [port_number_start, port_number_start + max_containers_1)
+            # action2: [port_number_start + max_containers_1, port_number_start + max_containers_[1, 2])
+            # ......
+            # actionN: [port_number_start + max_containers_[1, 2, ..., N-1], port_number_start + max_containers_[1, 2, ..., N])
+            # user must apply max_containers in the first request
+            obj = action_create(port_number_start, user_path, action_name, max_containers, max_share_count)
+            port_number_start += max_containers
+            test.action_object[action_name] = [obj, max_containers]
+            obj.first_arrival_time = arrival_time
+            obj.total_requests = 1
+        else:
+            obj = test.action_object[action_name][0]
+            obj.total_requests += 1
+            if obj.total_requests % 10 == 1:
+                obj.lambd = (arrival_time - obj.first_arrival_time) / (obj.total_requests - 1)
+        
+        db_requests.delete(doc)
+        action_queue.put({'action_name': action_name, 'arrival_time': arrival_time})
+        
+        # The following code are used to simulate action_run()
+        doc = {'action_name': action_name, 'arrival_time':arrival_time, 'begin_time':time.time(), 'end_time':time.time() + 10, 'duration':10, 'result':"ok"} 
+        db_results.save(doc)
+    
+        if for_count >= 5:
+            break
+    
+    for_count = 0
+    for id in db_results:
+        doc = db_results[id]
         action_name = doc['action_name']
         arrival_time = doc['arrival_time']
         begin_time = doc['begin_time']
         end_time = doc['end_time']
         result = doc['result']
-
+        
+        print("Result ", "action_time:", action_name, " ", "arrival_time:",arrival_time, " ", "begin_time:",begin_time, " ", "end_time:",end_time, " ", "result:", result)
         obj = test.action_object[action_name][0]
         obj.finished_requests += 1
         obj.Qos_satisfied_requests += (end_time - arrival_time <= obj.Qos_time)
@@ -140,4 +142,8 @@ while True:
             obj.mu = obj.finished_requests / obj.exec_time
             obj.Qos_value_cal = obj.Qos_satisfied_requests / obj.finished_requests
             
-        db.delete(doc)
+        db_results.delete(doc)
+
+        if for_count >= 5:
+            break;
+

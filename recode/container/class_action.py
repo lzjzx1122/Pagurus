@@ -32,7 +32,7 @@ class packages_info():
     def update(self,action_name,user_path):
         temp_packages=open(user_path+'/build_file/packages.json',encoding='utf-8')
         temp_packages_content=temp_packages.read()
-        temp_docker_file=open(user_path+'/build_file/docker_file.json',encoding='utf-8')
+        temp_docker_file=open(user_path+'/build_file/dockerfile.json',encoding='utf-8')
         temp_docker_file_content=temp_docker_file.read()
         self.packages = json.loads(temp_packages_content)
         self.docker_file = json.loads(temp_docker_file_content)
