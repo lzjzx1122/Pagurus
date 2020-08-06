@@ -53,7 +53,18 @@ class action_create():
         self.lender_instance_info = [None for index in range(share_count)]
 #对应每个action的信息，start_port_number对应当前action可创建容器的对应起始端口号，max_container为最大可创建容器数量（则当前容器可开放的端口号对应为[start_port_number,start_port_number_max_containers]）
 #，user_path则为action文件存储的位置，share_count为当前可共享的容器数量。
-
+        self.total_requests = 0 #总请求次数
+        self.finished_requests = 0 #已完成请求次数
+        self.Qos_satisfied_requests = 0 #满足Qos_time的请求次数
+        self.exec_time = 0 #处理所有请求的总时间
+        self.first_arrival_time = 0 #处理第一次请求的时间
+        self.lambd = 1 
+        self.mu = 0
+        self.Qos_time = 100
+        self.Qos_value_cal = 0
+        self.Qos_value_requirement = 0.95
+        # 初始值是多少并没有关系，因为处理第一次请求前并没有容器，并不会借出
+        
     @asynci
     def container_create(self,port_number,startup_type='default'):
         if startup_type == 'repack':
@@ -127,10 +138,10 @@ class action_create():
                     self.container_remove_by_port(replace_port_number,recycle_type='executant')
         return self.action_name
         
-    def idle_identify_and_lender_generate(self,lambd, mu, Qos_time, Qos_value_cal, Qos_value_requirement = 0.95):
+    def idle_identify_and_lender_generate(self):
         while True:
             if (self.lender_instance_info.count(None) > 0) and (self.instance_info.count(None) < len(self.instance_info)):
-                idle_sign = idle_status_check(lambd, self.current_containers, mu, Qos_time, Qos_value_cal, Qos_value_requirement)
+                idle_sign = idle_status_check(self.lambd, self.current_containers, self.mu, self.Qos_time, self.Qos_value_cal, self.Qos_value_requirement)
                 if idle_sign:
                     #inform controller to repack and return repack image
                     self.lender_container()
