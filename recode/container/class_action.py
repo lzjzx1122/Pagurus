@@ -4,7 +4,7 @@ import time
 import requests
 import json
 from threading import Thread
-from idle_container_algorithm import idle_status_check
+from container.idle_container_algorithm import idle_status_check
 
 def asynci(f):
         def wrapper(*args, **kwargs):
@@ -38,19 +38,20 @@ class packages_info():
         self.docker_file = json.loads(temp_docker_file_content)
 
 class action_create():
-    def __init__(self,port_number,user_path,action_name,max_containers,share_count):
+    def __init__(self,port_number,user_path,action_name,max_containers,max_share_count=2):
         self.start_port_number = port_number
         self.client = docker.from_env()
         self.user_path = user_path
         self.action_name = action_name
-        self.share_count = share_count 
+        self.share_count = 0
+        self.max_share_count = max_share_count
         self.max_containers = max_containers
         self.current_containers = 0
         self.packages_info = packages_info()
         self.packages_info.update(self.action_name,self.user_path)
         self.instance_info = [None for index in range(max_containers)]
         self.renter_instance_info = [None for index in range(max_containers)]
-        self.lender_instance_info = [None for index in range(share_count)]
+        self.lender_instance_info = [None for index in range(max_share_count)]
 #对应每个action的信息，start_port_number对应当前action可创建容器的对应起始端口号，max_container为最大可创建容器数量（则当前容器可开放的端口号对应为[start_port_number,start_port_number_max_containers]）
 #，user_path则为action文件存储的位置，share_count为当前可共享的容器数量。
         self.total_requests = 0 #总请求次数
@@ -58,8 +59,8 @@ class action_create():
         self.Qos_satisfied_requests = 0 #满足Qos_time的请求次数
         self.exec_time = 0 #处理所有请求的总时间
         self.first_arrival_time = 0 #处理第一次请求的时间
-        self.lambd = 1 
-        self.mu = 0
+        self.lambd = -1
+        self.mu = -1
         self.Qos_time = 100
         self.Qos_value_cal = 0
         self.Qos_value_requirement = 0.95

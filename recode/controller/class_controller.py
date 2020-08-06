@@ -7,7 +7,9 @@ import couchdb
 from threading import Thread
 from class_repack import repack_controller 
 from flask import Flask, request
-from class_action import action_create
+import sys
+sys.path.append('../')
+from container.class_action import action_create
 #from multiprocessing import Value,Process,Array
 
 def asynci(f):
@@ -19,17 +21,17 @@ def asynci(f):
 class node_controller():
     def __init__(self,node_id):
         self.node_id = node_id
-        self.repack_controller = repack_controller()
-        self.action_list = {} #{"renter A":xxx}
-        self.renter_lender_info = {} #{"renter A": {lender B: cos, lender C:cos}}
         self.action_object = {} #{"action_name": action_object}
+        self.repack_controller = repack_controller()
+        self.renter_lender_info = {} #{"renter A": {lender B: cos, lender C:cos}}
+        
     
     def action_info_update(self,action_obj=None):
-        if action_obj and (action_obj.action_name not in self.action_list.keys()):
-            self.action_list.update({action_obj.action_name:action_obj})
-        for (k1,v1) in self.action_list.items():
+        if action_obj and (action_obj.action_name not in self.action_object.keys()):
+            self.action_object.update({action_obj.action_name:action_obj})
+        for (k1,v1) in self.action_object.items():
             if v1.current_containers == 0:
-                self.action_list.pop(k1)
+                self.action_object.pop(k1)
                 self.renter_lender_info.pop(k1)
 
     def renter_lender_info_add(self,lender,renter_dict):
@@ -51,7 +53,7 @@ class node_controller():
     def action_scheduler(self,action_obj):
         if action_obj.action_name in self.renter_lender_info.keys():
             lender_obj = max(self.renter_lender_info[action_obj.action_name], key=self.renter_lender_info[action_obj.action_name].get) 
-            if (self.action_list[lender_obj].share_count > 0) and (action_obj.current_containers < action_obj.max_containers):
+            if (self.action_object[lender_obj].share_count > 0) and (action_obj.current_containers < action_obj.max_containers):
                 #inform lender delete container
                 #inform renter add container
                 
@@ -69,7 +71,7 @@ class node_controller():
 test = node_controller(1)
 test.action_repack('image',{"pillow":"default"},{"pillow":"default","numpy":"default"},3)
 test.action_repack('linpack',{"pillow":"default"},{"numpy":"default"},3)
-test.action_scheduler('float_operation')
+#test.action_scheduler('float_operation')
 print(test.renter_lender_info)
 
 
@@ -80,11 +82,11 @@ db = couch.create("action_results")
 action_queue = queue.Queue()
 # a Flask instance.
 proxy = Flask(__name__)
-action_count = 0
 user_path = "/home/openwhisk/pagurus/actions"
 port_number_start = 18080 # not sure!
 max_containers = 10 # not sure!
-share_count = 2 # not sure!
+max_share_count = 2 # not sure!
+
 
 # listen user requests
 @proxy.route('/listen', methods=['POST'])
@@ -92,22 +94,21 @@ def listen():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
     arrival_time = time.time()
-    
     obj = None
     if action_name not in test.action_object:
-        # action1: [port_number_start, port_number_start + max_containers)
-        # action2: [port_number_start + max_containers, port_number_start + max_containers * 2)
+        # action1: [port_number_start, port_number_start + max_containers_1)
+        # action2: [port_number_start + max_containers_1, port_number_start + max_containers_1 + max_containers_2)
         # ......
         # actionN: [port_number_start + max_containers * (N - 1), port_number_start + max_containers * N)
-        obj = action_create(port_number_start + action_count * max_containers, user_path, action_name, max_containers, share_count)
-        action_count += 1
+        obj = action_create(port_number_start + len(test.action_object) * max_containers, user_path, action_name, max_containers, max_share_count)
         test.action_object[action_name] = obj
         obj.first_arrival_time = arrival_time
         obj.total_requests = 1
     else:
         obj = test.action_object[action_name]
         obj.total_requests += 1
-        obj.lambd = (arrival_time - obj.first_arrival_time) / (obj.total_requests - 1)
+        if obj.total_requests % 10 == 1:
+            obj.lambd = (arrival_time - obj.first_arrival_time) / (obj.total_requests - 1)
 
     action_queue.put({'action_name': action_name, 'arrival_time': arrival_time})
 
@@ -130,11 +131,11 @@ while True:
         end_time = doc['end_time']
         result = doc['result']
 
-        obj = test.action_object[anction_name]
+        obj = test.action_object[action_name]
         obj.finished_requests += 1
         obj.Qos_satisfied_requests += (end_time - arrival_time <= obj.Qos_time)
         obj.Qos_value_cal = obj.Qos_satisfied_requests / obj.finished_requests
-        obj.exec_time += end_time - start_time
+        obj.exec_time += end_time - begin_time
         obj.mu = obj.finished_requests / obj.exec_time
         
         db.delete(doc)
