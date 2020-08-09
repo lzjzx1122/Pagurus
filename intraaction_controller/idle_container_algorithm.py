@@ -39,7 +39,7 @@ def idle_status_check(lambd, n, mu, Qos_time, Qos_value_cal, Qos_value_requireme
     idle_sign: marking whether the idle container exists  
     '''
 
-    judge = False
+    idle_sign = False
     if Qos_value_cal > Qos_value_requirement and n > 1:
         judge = Qos_value_algorithm(lambd, n - 1, mu, Qos_time)
         idle_sign = judge > Qos_value_requirement

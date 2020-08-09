@@ -16,7 +16,7 @@ class Action:
         self.port_manager = port_manager
         self.action_manager = action_manager
         self.pwd = pwd
-        self.img_name = 'img_' + action_name
+        self.img_name = 'action_' + action_name
         self.pack_img_name = None
         self.database = database
 
@@ -29,6 +29,7 @@ class Action:
         # start a timer for repack and clean
         global timer
         timer = Timer(interval, repack_and_clean, args=[self])
+        timer.start()
 
         # statistical infomation for idle container identifying
         self.lambd = -1
@@ -46,6 +47,7 @@ class Action:
     #   4. other actions' lender container
     #   5. create new container
     def send_request(self, request_id, data):
+        # TODO: have big problem, will create too many containers
         start = time.time()
 
         # 1.1 try to get a workable container from pool
@@ -120,7 +122,7 @@ class Action:
         container.destroy()
 
         if self.pack_img_name is None:
-            self.action_manager.create_pack_image()
+            self.pack_img_name = self.action_manager.create_pack_image(self.name)
         
         container = Container.create(self.client, self.pack_img_name, container.port, 'lender')
         self.init_container(container)
@@ -128,7 +130,7 @@ class Action:
 
     # give out a lender container to interaction controller
     # if there's no lender container, return None
-    def giveout_container(self, container):
+    def giveout_container(self):
         self.pool_lock.acquire()
         # no container in lender pool
         if len(self.lender_pool) == 0:
@@ -142,13 +144,22 @@ class Action:
         container_id = container.container.id
         port = container.port
         return container_id, port
+
+    # after the destruction of container
+    # its port should be give back to port manager
+    def remove_container(self, container):
+        container.destroy()
+        self.port_manager.put(container.port)
     
     # return the status of all container pools
     def pool_status(self):
         return {
             "exec": len(self.exec_pool),
             "lender": len(self.lender_pool),
-            "renter": len(self.renter_pool)
+            "renter": len(self.renter_pool),
+            "lambda": self.lambd,
+            "rec_mu": self.rec_mu,
+            "qos_real": self.qos_real
         }
 
     # remove all lender containers in lender pool
@@ -160,32 +171,36 @@ class Action:
         self.pool_lock.release()
 
         for c in lenders:
-            c.destroy()
+            self.remove_container(c)
 
     # do the action specific initialization work
     def init_container(self, container):
         container.init(self.name, self.pwd)
 
     def update_statistics(self):
-        # do not update if no requests came
-        if len(self.request_log) == 0:
+        # do not update if no requests, or only one came
+        if len(self.request_log) < 2:
             return
 
+        logs = self.request_log
+        self.request_log = []
         # sort all logs by start time
-        self.request_log.sort(key=lambda x: x[0])
+        logs.sort(key=lambda x: x[0])
 
-        intervals = [y[0] - x[0] for x, y in zip(self.request_log, self.request_log[1:])]
+        intervals = [y[0] - x[0] for x, y in zip(logs, logs[1:])]
         new_lambd = favg(intervals)
-        durations = [e - s for s, e in self.request_log]
+        durations = [e - s for s, e in logs]
         new_rec_mu = favg(durations)
 
         self.qos_real = sum([x < self.qos_time for x in durations]) / len(durations)
         if self.lambd > 0:
             self.lambd = update_rate * self.lambd + (1 - update_rate) * new_lambd
+        else:
+            self.lambd = new_lambd
         if self.rec_mu > 0:
             self.rec_mu = update_rate * self.rec_mu + (1 - update_rate) * new_rec_mu
-
-        self.request_log = []
+        else:
+            self.rec_mu = new_rec_mu
 
 def favg(a):
     return math.fsum(a) / len(a)
@@ -196,7 +211,7 @@ lender_lifetime = 120
 renter_lifetime = 40
 
 # do the repack and cleaning work regularly
-def repack_and_clean(action: Action):
+def repack_and_clean(action):
     # find the old containers
     old_container = []
     action.pool_lock.acquire()
@@ -218,7 +233,7 @@ def repack_and_clean(action: Action):
 
     # time consuming work is put here
     for c in old_container:
-        c.destroy()
+        action.remove_container(c)
     if repack_container is not None:
         repack_container = action.repack_container(repack_container)
         action.pool_lock.acquire()
@@ -227,16 +242,21 @@ def repack_and_clean(action: Action):
 
     global timer
     timer = Timer(interval, repack_and_clean, args=[action])
+    timer.start()
 
 # the pool list is in order:
 # - at the tail is the hottest containers (most recently used)
 # - at the head is the coldest containers (least recently used)
 def clean_pool(pool, lifetime, old_container):
     cur_time = time.time()
-    idx = 0
+    idx = -1
     for i, c in enumerate(pool):
+        print(c.container.short_id, cur_time - c.lasttime)
         if cur_time - c.lasttime < lifetime:
             idx = i
             break
-    old_container.extend(pool[idx:])
-    return pool[:idx]
+    # all containers in pool are old
+    if idx < 0:
+        idx = len(pool)
+    old_container.extend(pool[:idx])
+    return pool[idx:]

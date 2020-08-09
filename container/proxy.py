@@ -1,9 +1,8 @@
-import flask
 import zipfile
 import shutil
 import os
 import time
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 
 action_path = '/proxy/actions/'
