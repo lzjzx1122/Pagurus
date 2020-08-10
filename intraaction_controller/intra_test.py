@@ -36,7 +36,8 @@ proxy.action = Action(client,
                       TestActionManager(),
                       db,
                       0.3,
-                      0.95)
+                      0.95,
+                      10)
 
 app = proxy.proxy
 print('ok')

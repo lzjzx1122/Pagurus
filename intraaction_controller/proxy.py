@@ -44,7 +44,8 @@ def init():
                     action_manager,
                     db,
                     data['QOS_time'],
-                    data['QOS_requirement'])
+                    data['QOS_requirement'],
+                    data['max_container'])
     
     return ('OK', 200)
 

@@ -1,6 +1,8 @@
 import requests
 import docker
 import time
+from gevent import queue
+import gevent
 
 base_url = 'http://127.0.0.1:{}/{}'
 
@@ -12,7 +14,7 @@ class Container:
         res = cls(container, port, attr)
 
         while res.get_status() != 'new':
-            time.sleep(0.005)
+            gevent.sleep(0.005)
 
         return res
 
@@ -27,7 +29,30 @@ class Container:
         self.container = container
         self.port = port
         self.attr = attr
-        self.lasttime = time.time() # maybe redundant
+        self.lasttime = time.time()
+        self.run = False
+        self.runner = None
+
+    # continously get request from queue
+    def request_loop(self, rq):
+        self.run = True
+        self.runner = gevent.spawn(self._request_loop, rq)
+
+    # stop the request pulling loop
+    def stop_loop(self):
+        self.run = False
+        self.runner.join()
+        # gevent.wait(self.runner)
+
+    def _request_loop(self, rq):
+        while self.run:
+            try:
+                request = rq.get(timeout=0.05)
+            except queue.Empty:
+                continue
+
+            res = self.send_request(request.data)
+            request.result.set(res)
 
     # get the status of container
     # start: the proxy server does not work

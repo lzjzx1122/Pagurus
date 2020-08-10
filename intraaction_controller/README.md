@@ -15,7 +15,8 @@ the request should contain a json object including the init auguments:
     "action": "linpack",
     "pwd": "linpack",
     "QOS_time": 0.3,
-    "QOS_requirement": 0.95
+    "QOS_requirement": 0.95,
+    "max_container": 10
 }
 ```
 
@@ -24,6 +25,7 @@ the meaning of each field:
 - `pwd`: passphrase for decrypting action's zipfile
 - `QOS_time`: the maximum time by QOS, in seconds
 - `QOS_requirement`: the precent of requests satisfying the QOS requirement
+- `max_container`: the maximum number of containers that this action's controller can create
 
 return `200 OK` if success
 

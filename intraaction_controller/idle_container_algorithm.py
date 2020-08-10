@@ -22,6 +22,9 @@ def Qos_value_algorithm(lambd, n, mu, Qos_time):
     rou = lambd / (mu * n)
     nXrou = lambd / mu
 
+    if rou >= 1:
+        return 0
+    
     pi_0 = 1 / (sum([power_over_fac(nXrou, k) for k in range(n)]) + power_over_fac(nXrou, n) / (1 - rou))
     pi_n = power_over_fac(nXrou, n) * pi_0
 
