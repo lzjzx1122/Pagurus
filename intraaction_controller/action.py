@@ -8,7 +8,7 @@ from container import Container
 from idle_container_algorithm import idle_status_check
 
 repack_clean_interval = 5 # repack and clean every 5 seconds
-create_interval = 1 # create new container every 1 second
+create_interval = 0.020 # create new container every 1 second
 timer = None
 update_rate = 0.65 # the update rate of lambda and mu
 
@@ -36,8 +36,6 @@ class Action:
         self.exec_pool = []
         self.lender_pool = []
         self.renter_pool = []
-        self.contrust
-        self.run_pool = []
 
         # start a timer for repack and clean
         # global timer
@@ -323,5 +321,5 @@ def create(action):
     # print(action.lambd, n, action.rec_mu, action.qos_time, action.qos_real, action.qos_requirement)
 
     # idle_sign = idle_status_check(action.lambd, n, 1/action.rec_mu, action.qos_time, action.qos_real, action.qos_requirement)
-    if action.rq.qsize() > 5:
+    if action.rq.qsize() > 0:
         action.create_container()
