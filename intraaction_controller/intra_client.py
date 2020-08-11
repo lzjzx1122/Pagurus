@@ -11,7 +11,7 @@ def test():
     data = {
         'request_id': str(i),
         'data': {
-            'param': 100
+            'param': 10
         }
     }
     start = time.time()
@@ -22,5 +22,11 @@ def test():
 for _ in range(100):
     gevent.spawn(test)
     gevent.sleep(0.1)
+
+gevent.sleep(10)
+
+for _ in range(100):
+    gevent.spawn(test)
+    gevent.sleep(0.5)
 
 gevent.wait()

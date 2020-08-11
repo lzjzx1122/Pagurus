@@ -5,13 +5,8 @@ import gevent
 from container import Container
 from idle_container_algorithm import idle_status_check
 
-<<<<<<< HEAD
-repack_clean_interval = 5 # repack and clean every 5 seconds
-create_interval = 0.020 # create new container every 1 second
-=======
 repack_clean_interval = 5.000 # repack and clean every 5 seconds
-dispatch_interval = 0.100
->>>>>>> 2b3812f... finish dispatch version
+dispatch_interval = 0.005 # 200 qps at most
 timer = None
 update_rate = 0.65 # the update rate of lambda and mu
 
@@ -85,7 +80,6 @@ class Action:
         gevent.spawn_later(dispatch_interval, self.dispatch_request)
 
         # no request to dispatch
-        print(len(self.rq), self.num_processing)
         if len(self.rq) - self.num_processing == 0:
             return
         self.num_processing += 1
@@ -117,7 +111,7 @@ class Action:
         # 2. send request to the container
         res = container.send_request(req.data)
         res['queue_len'] = req.queue_len
-        res['queue_time'] = process_start - res.arrival
+        res['queue_time'] = process_start - req.arrival
         res['rent_time'] = rent_end - rent_start
         res['create_time'] = create_end - create_start
         req.result.set(res)
@@ -130,11 +124,11 @@ class Action:
         res = None
 
         if len(self.exec_pool) != 0:
-            res = self.exec_pool.pop(0)
+            res = self.exec_pool.pop(-1)
         elif len(self.renter_pool) != 0:
-            res = self.renter_pool.pop(0)
+            res = self.renter_pool.pop(-1)
         elif len(self.lender_pool) != 0:
-            res = self.lender_pool.pop(0)
+            res = self.lender_pool.pop(-1)
         
         return res
 
@@ -294,6 +288,11 @@ def repack_and_clean(action: Action):
     if repack_container is not None:
         action.repack_container(repack_container)
         action.lender_pool.append(repack_container)
+        
+    if len(action.lender_pool) == 1:
+        action.action_manager.have_lender(action.name)
+    elif len(action.lender_pool) == 0:
+        action.action_manager.no_lender(action.name)
 
 # the pool list is in order:
 # - at the tail is the hottest containers (most recently used)
