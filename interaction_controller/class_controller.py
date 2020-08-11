@@ -60,7 +60,7 @@ class node_controller():
             self.lender_renter_info.pop(lender)    
         self.info_lock.release()
 
-    def add_lenter(self, lender):
+    def add_lender(self, lender):
         self.info_lock.acquire()
         renters = self.image_info[lender]
         self.lender_renter_info[lender] = renters
@@ -145,6 +145,7 @@ class node_controller():
     def image_base(self, action_name):
         all_dockerfiles_content = open('build_file/docker_file.json', encoding='utf-8')
         all_dockerfiles = json.loads(all_dockerfiles_content.read())
+        requirements = all_dockerfiles[action_name]
 
         save_path = 'images_save/' + action_name + '/'
         file_path = save_path + 'requirements.txt'
@@ -157,11 +158,11 @@ class node_controller():
 
         with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM pagurus_base\n\
-                COPY ../../actions/{}.zip /proxy/actions/action_{}.zip\n\
-                COPY requirement.txt .\n\
-                RUN pip install --no-cache-dir -r requirement.txt && rm requirement.txt'.format{action_name, action_name})
-                    
-        os.system('cd {} && docker build -t action_{} .'.format(save_path, action_name))
+                COPY {}.zip /proxy/actions/action_{}.zip\n\
+                COPY requirements.txt .\n\
+                RUN pip install --no-cache-dir -r requirements.txt && rm requirements.txt'.format(action_name, action_name))
+                   
+        os.system('cd {} && cp ../../actions/{}.zip . && docker build -t action_{} .'.format(save_path, action_name, action_name))
 
     def image_save(self, action_name, renters, requirements):  
         all_dockerfiles_content = open('build_file/docker_file.json', encoding='utf-8')
@@ -181,11 +182,12 @@ class node_controller():
 
         with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM action_{}\n\
-                    COPY ../../actions/{}.zip /proxy/actions/action_{}.zip\n\
-                    COPY requirements.txt /\n\
-                    RUN pip install --no-cache-dir -r requirement.txt && rm requirement.txt'.format(action_name, action_name, action_name))
+                    COPY {}.zip /proxy/actions/action_{}.zip\n\
+                    COPY requirements.txt .\n\
+                    RUN pip install --no-cache-dir -r requirements.txt && rm requirements.txt'.format(action_name, action_name, action_name))
                     
-        os.system('cd {} && docker build -t action_{}_pack .'.format(save_path, action_name))
+ 
+        os.system('cd {} && cp ../../actions/{}.zip . && docker build -t action_{}_repack .'.format(save_path, action_name, action_name))
         return False
 
     def action_repack(self, action_name, packages, share_action_number=2):
@@ -193,7 +195,7 @@ class node_controller():
         self.image_save(action_name, renters, requirements)
 
         self.info_lock.acquire()
-        self.image_info[lender] = renters        
+        self.image_info[action_name] = renters        
         self.info_lock.release()
         
         return renters
@@ -243,9 +245,10 @@ def listen():
         process = None
         test.action_info[action_name] = [port_number_count, process]
     test_lock.release()
-
+    
     if need_init:
         test.image_base(action_name)
+    '''
         while True:
             try:
                 url = "http://0.0.0.0:" + str(port_number_count) + "/init"
@@ -254,9 +257,9 @@ def listen():
                     break
             except Exception:
                 time.sleep(0.01)       
-
+    '''
     print ("listen: ", request_id, " ", action_name)
-
+    '''
     while True:
         try:
             url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/run"
@@ -265,14 +268,14 @@ def listen():
                     break
         except Exception:
             time.sleep(0.01)       
-   
+    '''
     return ('OK', 200)
 
 @proxy.route('/have_lender', methods=['POST'])
 def have_lender():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
-    print ("have_lender: ", action_nmae)
+    print ("have_lender: ", action_name)
     test.add_lender(action_name)
     test.print_info()
     return ('OK', 200)
