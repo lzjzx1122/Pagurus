@@ -68,6 +68,11 @@ def lend():
 def status():
     return action.pool_status()
 
+@proxy.route('/end', methods=['POST'])
+def end():
+    action.end()
+    return ('OK', 200)
+
 def main():
     server = WSGIServer(('0.0.0.0', sys.argv[1]), proxy)
     server.serve_forever()

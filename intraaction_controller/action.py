@@ -39,8 +39,9 @@ class Action:
         self.renter_pool = []
 
         # start a timer for repack and clean
-        gevent.spawn_later(repack_clean_interval, repack_and_clean, self)
-        gevent.spawn_later(dispatch_interval, self.dispatch_request)
+        self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
+        self.dispatch = gevent.spawn_later(dispatch_interval, self.dispatch_request)
+        self.working = set()
 
         # statistical infomation for idle container identifying
         self.lambd = -1
@@ -56,6 +57,7 @@ class Action:
     
     # put the request into request queue
     def send_request(self, request_id, data):
+        self.working.add(gevent.getcurrent())
         start = time.time()
         self.request_log['start'].append(start)
 
@@ -68,6 +70,7 @@ class Action:
         end = time.time()
         self.request_log['duration'].append(res['duration'])
         self.request_log['alltime'].append(end - start)
+        self.working.remove(gevent.getcurrent())
 
     # receive a request from upper layer
     # the precedence of container source:
@@ -77,7 +80,7 @@ class Action:
     #   4. other actions' lender container
     #   5. create new container
     def dispatch_request(self):
-        gevent.spawn_later(dispatch_interval, self.dispatch_request)
+        self.dispatch = gevent.spawn_later(dispatch_interval, self.dispatch_request)
 
         # no request to dispatch
         if len(self.rq) - self.num_processing == 0:
@@ -253,6 +256,46 @@ class Action:
             new_qos_real = sum([x < self.qos_time for x in alltime]) / len(alltime)
             self.qos_real = update_rate * self.qos_real + (1 - update_rate) * new_qos_real
 
+    # do the repack and cleaning work regularly
+    def repack_and_clean(self):
+        self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
+
+        # find the old containers
+        old_container = []
+        self.exec_pool = clean_pool(self.exec_pool, exec_lifetime, old_container)
+        self.num_exec -= len(old_container)
+        self.lender_pool = clean_pool(self.lender_pool, lender_lifetime, old_container)
+        self.renter_pool = clean_pool(self.renter_pool, renter_lifetime, old_container)
+
+        # repack containers
+        self.update_statistics()
+        repack_container = None
+        if len(self.exec_pool) > 0:
+            n = len(self.exec_pool) + len(self.lender_pool) + len(self.renter_pool)
+            idle_sign = idle_status_check(self.lambd, n-1, 1/self.rec_mu, self.qos_time, self.qos_real, self.qos_requirement)
+            if idle_sign:
+                self.num_exec -= 1
+                repack_container = self.exec_pool.pop(0)
+
+        # time consuming work is put here
+        for c in old_container:
+            self.remove_container(c)
+        if repack_container is not None:
+            self.repack_container(repack_container)
+            self.lender_pool.append(repack_container)
+            
+        if len(self.lender_pool) == 1:
+            self.action_manager.have_lender(self.name)
+        elif len(self.lender_pool) == 0:
+            self.action_manager.no_lender(self.name)
+    
+    # end action's life
+    def end(self):
+        gevent.killall([self.repack_clean, self.dispatch])
+        gevent.wait(self.working)
+        for c in self.exec_pool + self.lender_pool + self.renter_pool:
+            self.remove_container(c)
+
 def favg(a):
     return math.fsum(a) / len(a)
 
@@ -260,39 +303,6 @@ def favg(a):
 exec_lifetime = 60
 lender_lifetime = 120
 renter_lifetime = 40
-
-# do the repack and cleaning work regularly
-def repack_and_clean(action: Action):
-    gevent.spawn_later(repack_clean_interval, repack_and_clean, action)
-
-    # find the old containers
-    old_container = []
-    action.exec_pool = clean_pool(action.exec_pool, exec_lifetime, old_container)
-    action.num_exec -= len(old_container)
-    action.lender_pool = clean_pool(action.lender_pool, lender_lifetime, old_container)
-    action.renter_pool = clean_pool(action.renter_pool, renter_lifetime, old_container)
-
-    # repack containers
-    action.update_statistics()
-    repack_container = None
-    if len(action.exec_pool) > 0:
-        n = len(action.exec_pool) + len(action.lender_pool) + len(action.renter_pool)
-        idle_sign = idle_status_check(action.lambd, n-1, 1/action.rec_mu, action.qos_time, action.qos_real, action.qos_requirement)
-        if idle_sign:
-            action.num_exec -= 1
-            repack_container = action.exec_pool.pop(0)
-
-    # time consuming work is put here
-    for c in old_container:
-        action.remove_container(c)
-    if repack_container is not None:
-        action.repack_container(repack_container)
-        action.lender_pool.append(repack_container)
-        
-    if len(action.lender_pool) == 1:
-        action.action_manager.have_lender(action.name)
-    elif len(action.lender_pool) == 0:
-        action.action_manager.no_lender(action.name)
 
 # the pool list is in order:
 # - at the tail is the hottest containers (most recently used)
