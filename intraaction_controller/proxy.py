@@ -2,6 +2,7 @@ from gevent import monkey
 monkey.patch_all()
 import docker
 import couchdb
+import sys
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 from action import Action
@@ -76,7 +77,7 @@ def status():
     return action.pool_status()
 
 def main():
-    server = WSGIServer(('0.0.0.0', 5000), proxy)
+    server = WSGIServer(('0.0.0.0', sys.argv[1]), proxy)
     server.serve_forever()
 
 if __name__ == '__main__':
