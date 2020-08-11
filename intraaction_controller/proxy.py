@@ -37,12 +37,11 @@ def init():
                     data['action'],
                     data['pwd'],
                     PortManager(data['min_port'], data['min_port'] + data['max_container'] - 1),
-                    ActionManger(),
+                    ActionManager(),
                     db,
                     data['QOS_time'],
                     data['QOS_requirement'],
                     data['max_container'])
-    
     return ('OK', 200)
 
 @proxy.route('/repack', methods=['POST'])
@@ -53,6 +52,7 @@ def repack():
 @proxy.route('/run', methods=['POST'])
 def run():
     data = request.get_json(force=True, silent=True)
+    print('run: ', data['request_id'], ' ', data['data'])
     action.send_request(data['request_id'], data['data'])
     return ('OK', 200)
 

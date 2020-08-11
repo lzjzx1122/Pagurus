@@ -24,7 +24,7 @@ class node_controller():
         self.node_id = node_id
         self.renter_lender_info = {} #{"renter A": [lender B: cos, lender C:cos]}
         self.lender_renter_info = {} #{"lender A": [renter B: cos, renter C:cos]}
-        self.image_info = {} #{"lender A": [renter B: cos, renter C:cos]}
+        self.repack_info = {} #{"lender A": [renter B: cos, renter C:cos]}
         self.action_info = {} #{"action_name": [port_number, process]}
         self.package_path = "build_file/packages.json"
         self.all_packages = {}
@@ -62,7 +62,7 @@ class node_controller():
 
     def add_lender(self, lender):
         self.info_lock.acquire()
-        renters = self.image_info[lender]
+        renters = self.repack_info[lender]
         self.lender_renter_info[lender] = renters
         for (k, v) in renters.items():
             if k not in self.renter_lender_info.keys():
@@ -195,7 +195,7 @@ class node_controller():
         self.image_save(action_name, renters, requirements)
 
         self.info_lock.acquire()
-        self.image_info[action_name] = renters        
+        self.repack_info[action_name] = renters        
         self.info_lock.release()
         
         return renters
@@ -248,18 +248,18 @@ def listen():
     
     if need_init:
         test.image_base(action_name)
-    '''
+    
         while True:
             try:
-                url = "http://0.0.0.0:" + str(port_number_count) + "/init"
+                url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/init"
                 res = requests.post(url, json = {"action": action_name, "pwd": action_name, "QOS_time": 0.3, "QOS_requirement": 0.95, "min_port": container_port_number, "max_container": 10})
                 if res.text == 'OK':
                     break
             except Exception:
                 time.sleep(0.01)       
-    '''
+
     print ("listen: ", request_id, " ", action_name)
-    '''
+
     while True:
         try:
             url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/run"
@@ -268,7 +268,7 @@ def listen():
                     break
         except Exception:
             time.sleep(0.01)       
-    '''
+    
     return ('OK', 200)
 
 @proxy.route('/have_lender', methods=['POST'])

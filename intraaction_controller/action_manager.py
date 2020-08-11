@@ -7,7 +7,7 @@ class ActionManager:
     
     def rent(self, action_name):
         try:
-            res = requests.post("http://0.0.0.0:5000/rent", json = {"action_name": action_name)})
+            res = requests.post("http://0.0.0.0:5000/rent", json = {"action_name": action_name})
             if res.text == "NO":
                 return None
             else:
@@ -18,7 +18,7 @@ class ActionManager:
     def create_pack_image(self, action_name):
         while True:
             try:
-                res = requests.post("http://0.0.0.0:5000/repack_image", json = {"action_name": action_name)})
+                res = requests.post("http://0.0.0.0:5000/repack_image", json = {"action_name": action_name})
                 return res.text
                 break
             except Exception:
@@ -27,7 +27,7 @@ class ActionManager:
     def have_lender(self, action_name):
         while True:
             try:
-                res = requests.post("http://0.0.0.0:5000/have_lender", json = {"action_name": action_name)})
+                res = requests.post("http://0.0.0.0:5000/have_lender", json = {"action_name": action_name})
                 break
             except Exception:
                 time.sleep(0.01)
@@ -35,7 +35,7 @@ class ActionManager:
     def no_lender(self, action_name):
          while True:
             try:
-                res = requests.post("http://0.0.0.0:5000/no_lender", json = {"action_name": action_name)})
+                res = requests.post("http://0.0.0.0:5000/no_lender", json = {"action_name": action_name})
                 break
             except Exception:
                 time.sleep(0.01)
