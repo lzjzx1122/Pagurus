@@ -20,6 +20,12 @@ class TestActionManager:
     def create_pack_image(self, action_name):
         return 'action_linpack_repack'
 
+    def no_lender(self, action_name):
+        pass
+
+    def have_lender(self, action_name):
+        pass
+
 db_server = couchdb.Server(proxy.couchdb_url)
 if proxy.db_name in db_server:
     db_server.delete(proxy.db_name)
@@ -27,6 +33,9 @@ db = db_server.create(proxy.db_name)
 
 client = docker.from_env()
 for c in client.containers.list(filters={'ancestor': 'action_linpack'}):
+    c.remove(force=True)
+
+for c in client.containers.list(filters={'ancestor': 'action_linpack_repack'}):
     c.remove(force=True)
 
 proxy.action = Action(client,
@@ -37,7 +46,7 @@ proxy.action = Action(client,
                       db,
                       0.3,
                       0.95,
-                      10)
+                      2)
 
 app = proxy.proxy
 print('ok')
