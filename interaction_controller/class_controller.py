@@ -43,7 +43,6 @@ class node_controller():
             for (lender, value) in self.renter_lender_info[renter].items():
                 print(lender, " ", value, end = " ")
             print("")
-         print("lender_renter_info:")
 
     def packages_reload(self):
         #self.info_lock.acquire()
@@ -216,7 +215,7 @@ def listen():
     test_lock.release()
     print ("listen: ", request_id, " ", action_name)
     url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/run"
-    res = requests.post(url, data = {"request_id": request_id, "data" = data})
+    res = requests.post(url, data = {"request_id": request_id, "data": data})
     return ('OK', 200)
 
 @proxy.route('/lender_empty', methods=['POST'])
