@@ -180,9 +180,9 @@ class node_controller():
 #inter-action controller            
 test = node_controller(1)
 test.packages_reload()
-#action_list = ["disk", "linpack", "image"]
-#for action in action_list:
-#    test.action_repack(action, test.all_packages[action])
+action_list = ["disk", "linpack", "image"]
+for action in action_list:
+    test.action_repack(action, test.all_packages[action])
 test.print_info()
 # a Flask instance.
 proxy = Flask(__name__)
@@ -201,21 +201,23 @@ def listen():
         global port_number_count
         port_number_count += 1
         #process = subprocess.Popen(['python3', 'tmp.py', action_name])
-        process = subprocess.Popen(['python3', '../intraaction_controller/proxy.py', str(port_number_count)])
+        #process = subprocess.Popen(['python3', '../intraaction_controller/proxy.py', str(port_number_count)])
         process = None
         test.action_info[action_name] = [port_number_count, process]
+        '''
         url = "http://0.0.0.0:" + str(port_number_count) + "/init"
         res = None
         while res == None or res.text != 'OK':
             res = requests.post(url, data = {"action": action_name, "pwd": action_name, "QOS_time": 0.3, "QOS_requirement": 0.95, "max_container": 10})
             time.sleep(0.01)
+        '''
     global request_id_count
     request_id_count += 1
     request_id = request_id_count
     test_lock.release()
     print ("listen: ", request_id, " ", action_name)
     url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/run"
-    res = requests.post(url, data = {"request_id": request_id, "data": data})
+    #res = requests.post(url, data = {"request_id": request_id, "data": data})
     return ('OK', 200)
 
 @proxy.route('/lender_empty', methods=['POST'])
