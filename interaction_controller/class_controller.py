@@ -157,8 +157,9 @@ class node_controller():
 
         with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM pagurus_base\n\
-                    COPY requirements.txt /\n\
-                    RUN pip3 install -r requirements.txt')
+                COPY ../../actions/{}.zip /proxy/actions/action_{}.zip\n\
+                COPY requirement.txt .\n\
+                RUN pip install --no-cache-dir -r requirement.txt && rm requirement.txt'.format{action_name, action_name})
                     
         os.system('cd {} && docker build -t action_{} .'.format(save_path, action_name))
 
@@ -180,8 +181,9 @@ class node_controller():
 
         with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM action_{}\n\
+                    COPY ../../actions/{}.zip /proxy/actions/action_{}.zip\n\
                     COPY requirements.txt /\n\
-                    RUN pip3 install -r requirements.txt'.format(action_name))
+                    RUN pip install --no-cache-dir -r requirement.txt && rm requirement.txt'.format(action_name, action_name, action_name))
                     
         os.system('cd {} && docker build -t action_{}_pack .'.format(save_path, action_name))
         return False

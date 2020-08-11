@@ -77,7 +77,7 @@ def end():
     return ('OK', 200)
 
 def main():
-    server = WSGIServer(('0.0.0.0', sys.argv[1]), proxy)
+    server = WSGIServer(('0.0.0.0', int(sys.argv[1])), proxy)
     server.serve_forever()
 
 if __name__ == '__main__':
