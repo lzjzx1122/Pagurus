@@ -46,7 +46,7 @@ proxy.action = Action(client,
                       db,
                       0.3,
                       0.95,
-                      2)
+                      10)
 
 app = proxy.proxy
 print('ok')

@@ -11,16 +11,16 @@ def test():
     data = {
         'request_id': str(i),
         'data': {
-            'param': 1000
+            'param': 100
         }
     }
     start = time.time()
-    r = requests.post('http://127.0.0.1:5000/run', json=data)
+    r = requests.post('http://127.0.0.1:5001/run', json=data)
     end = time.time()
     print(i, start, end, end - start)
 
 for _ in range(100):
     gevent.spawn(test)
-    gevent.sleep(0.5)
+    gevent.sleep(0.1)
 
 gevent.wait()

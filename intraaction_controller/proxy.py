@@ -13,18 +13,10 @@ action = None
 port_manager = None #TODO
 action_manager = None #TODO
 
-username = 'pagurus'
-password = 'pagurus'
+username = 'openwhisk'
+password = 'openwhisk'
 couchdb_url = f'http://{username}:{password}@127.0.0.1:5984/'
 db_name = 'action_results'
-
-# intra-action 接口
-# 1. 接受inter的repack消息, 需要销毁所有的lender容器
-# ps. container repack的时机由intra选择
-# 全局定时器定时检查可以repack的container和可以销毁的container
-# 2. 接受action run的请求
-# 3. 取走lender container
-# 4. 每种状态的容器的数量
 
 @proxy.route('/init', methods=['POST'])
 def init():
@@ -76,7 +68,7 @@ def status():
     return action.pool_status()
 
 def main():
-    server = WSGIServer(('0.0.0.0', 5000), proxy)
+    server = WSGIServer(('0.0.0.0', 5001), proxy)
     server.serve_forever()
 
 if __name__ == '__main__':
