@@ -20,6 +20,7 @@ class RequestInfo:
         self.request_id = request_id
         self.data = data
         self.result = gevent.event.AsyncResult()
+        self.arrival = time.time()
 
 class Action:
     def __init__(self, client, action_name, pwd, port_manager, action_manager, database, qos_time, qos_requirement, max_container):
@@ -64,6 +65,7 @@ class Action:
         self.request_log['start'].append(start)
 
         req = RequestInfo(request_id, data)
+        req.queue_len = len(self.rq)
         self.rq.append(req)
         res = req.result.get()
         self.database[request_id] = res
@@ -88,14 +90,23 @@ class Action:
             return
         self.num_processing += 1
 
+        process_start = time.time()
+
         # 1.1 try to get a workable container from pool
         container = self.self_container()
+
         # 1.2 try to get a renter container from interaction controller
+        rent_start = time.time()
         if container is None:
             container = self.rent_container()
+        rent_end = time.time()
+        
         # 1.3 create a new container
+        create_start = time.time()
         if container is None:
             container = self.create_container()
+        create_end = time.time()
+
         # the number of exec container hits limit
         if container is None:
             self.num_processing -= 1
@@ -105,6 +116,10 @@ class Action:
         self.num_processing -= 1
         # 2. send request to the container
         res = container.send_request(req.data)
+        res['queue_len'] = req.queue_len
+        res['queue_time'] = process_start - res.arrival
+        res['rent_time'] = rent_end - rent_start
+        res['create_time'] = create_end - create_start
         req.result.set(res)
         # 3. put the container back into pool
         self.put_container(container)
