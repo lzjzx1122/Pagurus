@@ -6,13 +6,15 @@ import sys
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 from action import Action
+from port_manager import PortManager
+from action_manager import ActionManager
 import time
 
 proxy = Flask(__name__)
 proxy.debug = False
 action = None
-port_manager = None #TODO
-action_manager = None #TODO
+#port_manager = None #TODO
+#action_manager = None #TODO
 
 username = 'openwhisk'
 password = 'openwhisk'
@@ -30,11 +32,12 @@ def init():
     else:
         db = db_server.create(db_name)
 
+    print ("init :", data['action'], ' ', data['min_port'], ' ', data['max_container'])
     action = Action(docker.from_env(),
                     data['action'],
                     data['pwd'],
-                    port_manager,
-                    action_manager,
+                    PortManager(data['min_port'], data['min_port'] + data['max_container'] - 1),
+                    ActionManger(),
                     db,
                     data['QOS_time'],
                     data['QOS_requirement'],
