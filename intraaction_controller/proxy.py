@@ -16,6 +16,7 @@ proxy.debug = False
 action = None
 #port_manager = None #TODO
 #action_manager = None #TODO
+server = None
 
 username = 'openwhisk'
 password = 'openwhisk'
@@ -72,9 +73,12 @@ def status():
 @proxy.route('/end', methods=['POST'])
 def end():
     action.end()
+    global server
+    server.stop()
     return ('OK', 200)
 
 def main():
+    global server
     server = WSGIServer(('0.0.0.0', int(sys.argv[1])), proxy)
     server.serve_forever()
 
