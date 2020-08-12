@@ -149,7 +149,7 @@ class node_controller():
         requirements = all_dockerfiles[action_name]
 
         save_path = 'images_save/' + action_name + '/'
-        file_path = save_path + 'requirement.txt'
+        file_path = save_path + 'requirements.txt'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
@@ -157,12 +157,12 @@ class node_controller():
         for requirement in requirements:
             file_write.writelines(requirement + '\n')
 
-        with open(save_path + 'Dockerfile', 'w') as f:
-            f.write('FROM pagurus_base\n\n\
-                COPY {}.zip /proxy/actions/action_{}.zip\n\n\
-                COPY requirement.txt .\n\n\
-                RUN pip3 install -r requirement.txt'.format(action_name, action_name))
-                   
+        with open(save_path + 'Dockerfile', 'w') as f:       
+            f.write('FROM action_{}\n'.format(action_name))
+            f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(action_name, action_name))
+            f.write('COPY requirements.txt .\n')
+            f.write('RUN pip3 install --no-cache-dir -r requirements.txt && rm requirements.txt')  
+        
         os.system('cd {} && cp ../../actions/{}.zip . && docker build -t action_{} .'.format(save_path, action_name, action_name))
 
     def image_save(self, action_name, renters, requirements):  
@@ -170,7 +170,7 @@ class node_controller():
         all_dockerfiles = json.loads(all_dockerfiles_content.read())
 
         save_path = 'images_save/' + action_name + '_repack/'
-        file_path = save_path + 'requirement.txt'
+        file_path = save_path + 'requirements.txt'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
@@ -182,11 +182,10 @@ class node_controller():
             file_write.writelines(requirement + '\n')
 
         with open(save_path + 'Dockerfile', 'w') as f:
-            f.write('FROM action_{}\n\
-                    COPY {}.zip /proxy/actions/action_{}.zip\n\
-                    COPY requirement.txt /\n\
-                    RUN pip install --no-cache-dir -r requirement.txt && rm requirement.txt'.format(action_name, action_name, action_name))
-                    
+            f.write('FROM action_{}\n'.format(action_name))
+            f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(action_name, action_name))
+            f.write('COPY requirements.txt .\n')
+            f.write('RUN pip3 install --no-cache-dir -r requirements.txt && rm requirements.txt') 
  
         os.system('cd {} && cp ../../actions/{}.zip . && docker build -t action_{}_repack .'.format(save_path, action_name, action_name))
         return False
@@ -229,7 +228,7 @@ monkey.patch_all()
 # a Flask instance.
 proxy = Flask(__name__)
 test_lock = Lock()
-container_port_number_count = 18080
+container_port_number_count = 18081
 port_number_count = 5000
 request_id_count = 0
 # listen user requests
@@ -253,8 +252,8 @@ def listen():
         port_number_count += 1
         container_port_number_count += 10
         #process = subprocess.Popen(['python3', 'tmp.py', action_name])
-        #process = subprocess.Popen(['python3', '../intraaction_controller/proxy.py', str(port_number_count)])
-        process = None
+        process = subprocess.Popen(['python3', '../intraaction_controller/proxy.py', str(port_number_count)])
+        #process = None
         test.action_info[action_name] = [port_number_count, process]
     test_lock.release()
     
@@ -275,7 +274,7 @@ def listen():
     while True:
         try:
             url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/run"
-            res = requests.post(url, json = {"request_id": request_id, "data": params})               
+            res = requests.post(url, json = {"request_id": str(request_id), "data": params})               
             if res.text == 'OK':
                 break
         except Exception:

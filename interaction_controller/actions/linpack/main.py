@@ -1,7 +1,6 @@
 from numpy import matrix, linalg, random
 from time import time
 
-
 def main(param):
     # LINPACK benchmarks
     n = param['param']
