@@ -8,6 +8,7 @@ class ActionManager:
     
     def rent(self, action_name):
         try:
+            print("send rent: ", action_name)
             res = requests.post("http://0.0.0.0:5000/rent", json = {"action_name": action_name})
             if res.text == "no renter":
                 return None
@@ -27,6 +28,7 @@ class ActionManager:
                 time.sleep(0.01)
 
     def have_lender(self, action_name):
+        print("send have_lender: ", action_name)
         while True:
             try:
                 res = requests.post("http://0.0.0.0:5000/have_lender", json = {"action_name": action_name})
@@ -35,7 +37,8 @@ class ActionManager:
                 time.sleep(0.01)
 
     def no_lender(self, action_name):
-         while True:
+        print("send no_lender: ", action_name)
+        while True:
             try:
                 res = requests.post("http://0.0.0.0:5000/no_lender", json = {"action_name": action_name})
                 break

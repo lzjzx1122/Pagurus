@@ -229,7 +229,7 @@ monkey.patch_all()
 proxy = Flask(__name__)
 test_lock = Lock()
 container_port_number_count = 18081
-port_number_count = 5000
+port_number_count = 5001
 request_id_count = 0
 # listen user requests
 @proxy.route('/listen', methods=['POST'])
@@ -245,29 +245,26 @@ def listen():
     global container_port_number_count    
     request_id_count += 1
     request_id = request_id_count
-    container_port_number = container_port_number_count
-    need_init = False
     if action_name not in test.action_info:
-        need_init = True
-        port_number_count += 1
-        container_port_number_count += 10
         #process = subprocess.Popen(['python3', 'tmp.py', action_name])
         process = subprocess.Popen(['python3', '../intraaction_controller/proxy.py', str(port_number_count)])
         #process = None
-        test.action_info[action_name] = [port_number_count, process]
-    test_lock.release()
-    
-    if need_init:
+        test.action_info[action_name] = [port_number_count, process] 
         test.image_base(action_name)
-    
+        #print("need_init") 
         while True:
             try:
                 url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/init"
-                res = requests.post(url, json = {"action": action_name, "pwd": action_name, "QOS_time": 0.3, "QOS_requirement": 0.95, "min_port": container_port_number, "max_container": 10})
+         #       print("init: ", url)
+                res = requests.post(url, json = {"action": action_name, "pwd": action_name, "QOS_time": 1, "QOS_requirement": 0.1, "min_port": container_port_number_count, "max_container": 10})
                 if res.text == 'OK':
                     break
             except Exception:
                 time.sleep(0.01)       
+
+        port_number_count += 1
+        container_port_number_count += 10
+    test_lock.release()
 
     print ("listen: ", request_id, " ", action_name)
 
