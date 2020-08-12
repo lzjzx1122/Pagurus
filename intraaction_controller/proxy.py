@@ -27,6 +27,7 @@ db_name = 'action_results'
 def init():
     global action
     data = request.get_json(force=True, silent=True)
+    print ("init :", data['action'], ' ', data['min_port'], ' ', data['max_container'])
     
     db_server = couchdb.Server(couchdb_url)
     if db_name in db_server:
@@ -34,7 +35,6 @@ def init():
     else:
         db = db_server.create(db_name)
 
-    print ("init :", data['action'], ' ', data['min_port'], ' ', data['max_container'])
     action = Action(docker.from_env(),
                     data['action'],
                     data['pwd'],
@@ -55,6 +55,8 @@ def repack():
 def run():
     data = request.get_json(force=True, silent=True)
     print('run: ', data['request_id'], ' ', data['data'])
+    if action == None:
+        return ('NO', 404)
     action.send_request(data['request_id'], data['data'])
     return ('OK', 200)
 
