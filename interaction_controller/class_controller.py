@@ -1,18 +1,20 @@
+from gevent import monkey
+monkey.patch_all()
 import os
-import docker
 import time
+import docker
 import asyncio
 import queue
 import couchdb
 import subprocess
-import requests
+#import requests
 import random
 import json
 import numpy as np
 from threading import Thread, Lock
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
-from gevent import monkey
+import requests
 
 def asynci(f):
         def wrapper(*args, **kwargs):
@@ -224,7 +226,6 @@ test.packages_reload()
 #    test.action_repack(action, test.all_packages[action])
 test.print_info()
 
-monkey.patch_all()
 # a Flask instance.
 proxy = Flask(__name__)
 test_lock = Lock()
@@ -264,7 +265,7 @@ def listen():
             try:
                 url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/init"
                 #print("init: ", url)
-                res = requests.post(url, json = {"action": action_name, "pwd": action_name, "QOS_time": 1, "QOS_requirement": 0, "min_port": container_port_number, "max_container": 10})#, timeout = 1)
+                res = requests.post(url, json = {"action": action_name, "pwd": action_name, "QOS_time": 0.3, "QOS_requirement": 0.95, "min_port": container_port_number, "max_container": 10})
                 print("res: ", res)
                 if res.text == 'OK':
                     break
@@ -276,7 +277,7 @@ def listen():
     while True:
         try:
             url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/run"
-            res = requests.post(url, json = {"request_id": str(request_id), "data": params})#, timeout = 1)               
+            res = requests.post(url, json = {"request_id": str(request_id), "data": params})
             if res.text == 'OK':
                 break
         except Exception:
@@ -288,7 +289,7 @@ def listen():
 def have_lender():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
-    print ("have_lender: ", action_name)
+    #print ("have_lender: ", action_name)
     test.add_lender(action_name)
     test.print_info()
     return ('OK', 200)
@@ -297,7 +298,7 @@ def have_lender():
 def no_lender():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
-    print ("no_lender: ", action_name)
+    #print ("no_lender: ", action_name)
     test.remove_lender(action_name)
     test.print_info()
     return ('OK', 200)
