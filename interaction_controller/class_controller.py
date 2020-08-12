@@ -220,6 +220,32 @@ class node_controller():
         else:
             return None
 
+
+        def lender_list(self):
+        ret = []
+        tmp = dict()
+        with open('./build_file/packages.json','r')as fp:
+            json_data = json.load(fp)
+            for i in self.lender_renter_info:
+                tmp['name'] = i
+                packages = []
+                tmp['packages'] = json_data[i]
+                ret.append(tmp)
+        
+        return ret
+
+    def check_sim(self):
+        for i in self.renter_lender_info:
+            if max(self.renter_lender_info[i].values()) < 0.2:
+                res = requests.post(head_url+'/redirect', json={node_ip:i})
+                self.info_lock.acquire()
+                if i in self.lender_renter_info:
+                    for renter in self.lender_renter_info[i].keys():
+                        self.renter_lender_info[renter].pop(i)
+                    self.lender_renter_info.pop(i)    
+                self.info_lock.release()
+                res = requests.get(url = "http://0.0.0.0:" + str(test.action_info[i][0]) + "/end")
+
 #inter-action controller            
 test = node_controller(1)
 test.packages_reload()
@@ -234,6 +260,10 @@ test_lock = Lock()
 container_port_number_count = 18081
 port_number_count = 5001
 request_id_count = 0
+############ add ip address ##############
+hostname = socket.gethostname()
+node_ip = socket.gethostbyname(hostname)
+
 # listen user requests
 @proxy.route('/listen', methods=['POST'])
 def listen():
@@ -324,6 +354,43 @@ def rent():
     else:
         print ("rent: ", action_name, " ", res[0], " ", res[2])
         return (json.dumps({"id": res[1], "port": res[2]}), 200)
+
+
+# communication with head ########################################
+@proxy.route('/load-info', methods=['GET']) # need to install sar
+def load_info():
+    cpu = subprocess.Popen(["sar", "-u", "1", "1"], stdout=subprocess.PIPE, encoding='UTF-8')
+    cpu_info = cpu.stdout.read()
+    cpu_load = 100.0 - float(list(filter(None, cpu_info[cpu_info.find("Average"):].split(' ')))[-1])
+
+    mem = subprocess.Popen(["sar", "-r", "1", "1"], stdout=subprocess.PIPE, encoding='UTF-8')
+    mem_info = mem.stdout.read()
+    mem_load = float(list(filter(None, mem_info[mem_info.find("Average"):].split(' ')))[4])
+
+    net = subprocess.Popen(["sar", "-n", "DEV", "1", "1"], stdout=subprocess.PIPE, encoding='UTF-8')
+    net_info = net.stdout.read()
+    net_load = list(filter(None, net_info.split('\n')))
+    net_load = list(filter(lambda x: x.find('Average') != -1 and x.find('IFACE') == -1, net_load))  # 如果是特定网口的话，
+    # and第二个条件为x.find(<name_of_port>) != -1
+    rxkB, txkB = 0, 0
+    for port in net_load:
+        rxkB += float(list(filter(None, port.split(' ')))[4])
+        txkB += float(list(filter(None, port.split(' ')))[5])
+
+    # print("cpu load: {}%; mem load: {}%; net load: rx: {}kB/s, tx: {}kB/s".format(round(cpu_load, 2), mem_load, rxkB, txkB))
+    node = dict()
+    node['cpu'] = cpu_load
+    node['mem'] = mem_load
+    node['net'] = (rxkB + txkB) / 1000 * 100 
+    ret = dict()
+    ret[node_ip] = node
+    return ret
+
+@proxy.route('/lender-info', methods=['GET']) # need to install sar
+def lender_info():
+    ret = dict()
+    ret[node_ip] = test.lender_list()
+    return ret
 
 if __name__ == '__main__':
     server = WSGIServer(('0.0.0.0', 5000), proxy)
