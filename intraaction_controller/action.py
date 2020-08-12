@@ -272,7 +272,7 @@ class Action:
         repack_container = None
         if len(self.exec_pool) > 0:
             n = len(self.exec_pool) + len(self.lender_pool) + len(self.renter_pool)
-            idle_sign = idle_status_check(self.lambd, n-1, 1/self.rec_mu, self.qos_time, self.qos_real, self.qos_requirement)
+            idle_sign = idle_status_check(1/self.lambd, n-1, 1/self.rec_mu, self.qos_time, self.qos_real, self.qos_requirement)
             if idle_sign:
                 self.num_exec -= 1
                 repack_container = self.exec_pool.pop(0)
