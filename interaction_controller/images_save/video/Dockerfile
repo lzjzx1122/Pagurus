@@ -1,5 +1,4 @@
-FROM lzjzx1122/python3actionvideo
-
-                    COPY requirements.txt /
-
-                    RUN pip3 install -r requirements.txt
+FROM pagurus_base
+                COPY video.zip /proxy/actions/action_video.zip
+                COPY requirements.txt .
+                RUN pip install --no-cache-dir -r requirements.txt && rm requirements.txt

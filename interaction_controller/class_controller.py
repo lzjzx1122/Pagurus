@@ -23,7 +23,8 @@ class node_controller():
     def __init__(self, node_id):
         self.node_id = node_id
         self.renter_lender_info = {} #{"renter A": [lender B: cos, lender C:cos]}
-        self.lender_renter_info = {}
+        self.lender_renter_info = {} #{"lender A": [renter B: cos, renter C:cos]}
+        self.repack_info = {} #{"lender A": [renter B: cos, renter C:cos]}
         self.action_info = {} #{"action_name": [port_number, process]}
         self.package_path = "build_file/packages.json"
         self.all_packages = {}
@@ -59,8 +60,9 @@ class node_controller():
             self.lender_renter_info.pop(lender)    
         self.info_lock.release()
 
-    def renter_lender_info_update(self, lender, renters):
+    def add_lender(self, lender):
         self.info_lock.acquire()
+        renters = self.repack_info[lender]
         self.lender_renter_info[lender] = renters
         for (k, v) in renters.items():
             if k not in self.renter_lender_info.keys():
@@ -140,11 +142,33 @@ class node_controller():
                 return False
         return True
 
+    def image_base(self, action_name):
+        all_dockerfiles_content = open('build_file/docker_file.json', encoding='utf-8')
+        all_dockerfiles = json.loads(all_dockerfiles_content.read())
+        requirements = all_dockerfiles[action_name]
+
+        save_path = 'images_save/' + action_name + '/'
+        file_path = save_path + 'requirements.txt'
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+
+        file_write = open(file_path, 'w')
+        for requirement in requirements:
+            file_write.writelines(requirement + '\n')
+
+        with open(save_path + 'Dockerfile', 'w') as f:
+            f.write('FROM pagurus_base\n\
+                COPY {}.zip /proxy/actions/action_{}.zip\n\
+                COPY requirements.txt .\n\
+                RUN pip install --no-cache-dir -r requirements.txt && rm requirements.txt'.format(action_name, action_name))
+                   
+        os.system('cd {} && cp ../../actions/{}.zip . && docker build -t action_{} .'.format(save_path, action_name, action_name))
+
     def image_save(self, action_name, renters, requirements):  
         all_dockerfiles_content = open('build_file/docker_file.json', encoding='utf-8')
         all_dockerfiles = json.loads(all_dockerfiles_content.read())
 
-        save_path = 'images_save/' + action_name + '/'
+        save_path = 'images_save/' + action_name + '_repack/'
         file_path = save_path + 'requirements.txt'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
@@ -154,39 +178,55 @@ class node_controller():
 
         file_write = open(file_path, 'w')
         for requirement in requirements:
-            file_write.writelines(requirement+'\n')
+            file_write.writelines(requirement + '\n')
 
         with open(save_path + 'Dockerfile', 'w') as f:
-            f.write('FROM lzjzx1122/python3action{}\n\n\
-                    COPY requirements.txt /\n\n\
-                    RUN pip3 install -r requirements.txt'.format(action_name))
-        #os.system('cd {} && docker build -t lzjzx1122/python3action_pack_{} .'.format(self.save_path, self.action_name))
+            f.write('FROM action_{}\n\
+                    COPY {}.zip /proxy/actions/action_{}.zip\n\
+                    COPY requirements.txt .\n\
+                    RUN pip install --no-cache-dir -r requirements.txt && rm requirements.txt'.format(action_name, action_name, action_name))
+                    
+ 
+        os.system('cd {} && cp ../../actions/{}.zip . && docker build -t action_{}_repack .'.format(save_path, action_name, action_name))
         return False
 
     def action_repack(self, action_name, packages, share_action_number=2):
         renters, requirements = self.get_renters(action_name, packages, share_action_number)
-        
         self.image_save(action_name, renters, requirements)
-        self.renter_lender_info_update(action_name, renters)
+
+        self.info_lock.acquire()
+        self.repack_info[action_name] = renters        
+        self.info_lock.release()
+        
         return renters
 
     def action_scheduler(self, action_name):
         if action_name in self.renter_lender_info.keys() and len(self.renter_lender_info[action_name]) > 0:
             lender = max(self.renter_lender_info[action_name], key = self.renter_lender_info[action_name].get) 
             #不超过max_containers由intra保证
-            return lender
-        return None
+            try:
+                res = requests.get(url = "http://0.0.0.0:" + str(test.action_info[lender][0]) + "/lend")               
+                if res.text == 'no lender':
+                    return None
+                else:
+                    res_dict = json.loads(res.text)
+                    return lender, res['id'], res['port']
+                except Exception:
+                    return None
+        else:
+            return None
 
 #inter-action controller            
 test = node_controller(1)
 test.packages_reload()
-action_list = ["disk", "linpack", "image"]
-for action in action_list:
-    test.action_repack(action, test.all_packages[action])
+#action_list = ["disk", "linpack", "image"]
+#for action in action_list:
+#    test.action_repack(action, test.all_packages[action])
 test.print_info()
 # a Flask instance.
 proxy = Flask(__name__)
 test_lock = Lock()
+container_port_number_count = 18080
 port_number_count = 5000
 request_id_count = 0
 # listen user requests
@@ -194,37 +234,66 @@ request_id_count = 0
 def listen():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
-    data = inp['data']
+    params = inp['params']
+    
     global test_lock
     test_lock.acquire()
+    global request_id_count
+    global port_number_count
+    global container_port_number_count    
+    request_id_count += 1
+    request_id = request_id_count
+    container_port_number = container_port_number_count
+    need_init = False
     if action_name not in test.action_info:
-        global port_number_count
+        need_init = True
         port_number_count += 1
+        container_port_number_count += 10
         #process = subprocess.Popen(['python3', 'tmp.py', action_name])
         #process = subprocess.Popen(['python3', '../intraaction_controller/proxy.py', str(port_number_count)])
         process = None
         test.action_info[action_name] = [port_number_count, process]
-        '''
-        url = "http://0.0.0.0:" + str(port_number_count) + "/init"
-        res = None
-        while res == None or res.text != 'OK':
-            res = requests.post(url, data = {"action": action_name, "pwd": action_name, "QOS_time": 0.3, "QOS_requirement": 0.95, "max_container": 10})
-            time.sleep(0.01)
-        '''
-    global request_id_count
-    request_id_count += 1
-    request_id = request_id_count
     test_lock.release()
+    
+    if need_init:
+        test.image_base(action_name)
+    
+        while True:
+            try:
+                url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/init"
+                res = requests.post(url, json = {"action": action_name, "pwd": action_name, "QOS_time": 0.3, "QOS_requirement": 0.95, "min_port": container_port_number, "max_container": 10})
+                if res.text == 'OK':
+                    break
+            except Exception:
+                time.sleep(0.01)       
+
     print ("listen: ", request_id, " ", action_name)
-    url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/run"
-    #res = requests.post(url, data = {"request_id": request_id, "data": data})
+
+    while True:
+        try:
+            url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/run"
+            res = requests.post(url, json = {"request_id": request_id, "data": params})               
+            if res.text == 'OK':
+                break
+        except Exception:
+            time.sleep(0.01)       
+    
     return ('OK', 200)
 
-@proxy.route('/lender_empty', methods=['POST'])
-def lender_empty():
+@proxy.route('/have_lender', methods=['POST'])
+def have_lender():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
-    print ("lender_empty: ", lender_empty)
+    print ("have_lender: ", action_name)
+    test.add_lender(action_name)
+    test.print_info()
+    return ('OK', 200)
+
+@proxy.route('/no_lender', methods=['POST'])
+def no_lender():
+    inp = request.get_json(force=True, silent=True)
+    action_name = inp['action_name']
+    print ("no_lender: ", action_name)
     test.remove_lender(action_name)
     test.print_info()
     return ('OK', 200)
@@ -236,18 +305,18 @@ def repack_image():
     print ("repack_image: ", action_name, " ", test.all_packages[action_name])
     test.action_repack(action_name, test.all_packages[action_name])
     test.print_info()
-    return ("../interaction_controller/images_save/" + action_name, 200)
+    return ("action_" + action_name + "_repack", 200)
 
 @proxy.route('/rent', methods=['POST'])
 def rent():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
-    lender = test.action_scheduler(action_name)
-    print ("rent: ", action_name, " ", lender)
+    res = test.action_scheduler(action_name)
+    print ("rent: ", action_name, " ", res[0], " ", res[2])
     if lender == None:
-        return ('NO', 200)
+        return ('no renter', 200)
     else:
-        return (lender, 200)
+        return (json.dumps({"id": res[1], "port": res[2]}), 200)
 
 if __name__ == '__main__':
     server = WSGIServer(('0.0.0.0', 5000), proxy)

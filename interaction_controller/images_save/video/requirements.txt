@@ -1,2 +1,1 @@
-pillow
-numpy
+scikit-video
