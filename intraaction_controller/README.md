@@ -110,3 +110,8 @@ the meaning of each field:
 - `lambda`: the lambda value used in idle container identification
 - `rec_mu`: the reciprocal of mu used in idle container identification
 - `qos_real`: the r_real used in idle container identification
+
+### end
+end the proxy server. nothing shoud be sent. return `200 OK` if success.
+
+the proxy server will wait for all requset to be done and then stop itself.
