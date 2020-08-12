@@ -392,6 +392,22 @@ def lender_info():
     ret[node_ip] = test.lender_list()
     return ret
 
-if __name__ == '__main__':
-    server = WSGIServer(('0.0.0.0', 5000), proxy)
+def main():
+    server = WSGIServer(('0.0.0.0', 7899), proxy)
     server.serve_forever()
+
+def check_similarity():
+    while 1:
+        print("begin to check similarity")
+        test.check_sim()
+        time.sleep(60*30)
+
+if __name__ == '__main__':
+    try:
+        _thread.start_new_thread( main, ( ) )
+        _thread.start_new_thread( check_similarity, ( ) )
+    except:
+        print('thread start fail')
+
+    while 1:
+        pass
