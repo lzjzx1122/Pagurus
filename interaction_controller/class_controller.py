@@ -15,6 +15,8 @@ from threading import Thread, Lock
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 import requests
+import socket
+import _thread
 
 def asynci(f):
         def wrapper(*args, **kwargs):
