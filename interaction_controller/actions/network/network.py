@@ -10,4 +10,4 @@ def main(param):
     latency = time.time()-start_time
     print('latency :',latency)
     return{"latency":latency}
-main({'name':'5mb'})
+#main({'name':'5mb'})

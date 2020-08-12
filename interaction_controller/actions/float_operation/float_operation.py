@@ -9,5 +9,5 @@ def main(param):
         cos_i = math.cos(i)
         sqrt_i = math.sqrt(i)
     print('latency:',time.time()-start_time)
-main({"param":1000000})
+#main({"param":1000000})
 

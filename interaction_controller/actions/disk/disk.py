@@ -34,5 +34,5 @@ def main(param):
     print('latency :',latency)
     return {"latency":latency}
 
-main({"bs":2048,"count":50000})
+#main({"bs":2048,"count":50000})
 
