@@ -204,8 +204,17 @@ class node_controller():
         if action_name in self.renter_lender_info.keys() and len(self.renter_lender_info[action_name]) > 0:
             lender = max(self.renter_lender_info[action_name], key = self.renter_lender_info[action_name].get) 
             #不超过max_containers由intra保证
-            return lender
-        return None
+            try:
+                res = requests.get(url = "http://0.0.0.0:" + str(test.action_info[lender][0]) + "/lend")               
+                if res.text == 'no lender':
+                    return None
+                else:
+                    res_dict = json.loads(res.text)
+                    return lender, res['id'], res['port']
+                except Exception:
+                    return None
+        else:
+            return None
 
 #inter-action controller            
 test = node_controller(1)
@@ -265,7 +274,7 @@ def listen():
             url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/run"
             res = requests.post(url, json = {"request_id": request_id, "data": params})               
             if res.text == 'OK':
-                    break
+                break
         except Exception:
             time.sleep(0.01)       
     
@@ -302,12 +311,12 @@ def repack_image():
 def rent():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
-    lender = test.action_scheduler(action_name)
-    print ("rent: ", action_name, " ", lender)
+    res = test.action_scheduler(action_name)
+    print ("rent: ", action_name, " ", res[0], " ", res[2])
     if lender == None:
-        return ('NO', 200)
+        return ('no renter', 200)
     else:
-        return (lender, 200)
+        return (json.dumps({"id": res[1], "port": res[2]}), 200)
 
 if __name__ == '__main__':
     server = WSGIServer(('0.0.0.0', 5000), proxy)

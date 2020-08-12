@@ -3,6 +3,7 @@ monkey.patch_all()
 import docker
 import couchdb
 import sys
+import json
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 from action import Action
@@ -62,10 +63,7 @@ def lend():
     if res is None:
         return ('no lender', 404)
     else:
-        return {
-            'id': res[0],
-            'post': res[1]
-        }
+        return (json.dumps({"id": res[0], "post": res[1]}), 200)
 
 @proxy.route('/status', methods=['GET'])
 def status():

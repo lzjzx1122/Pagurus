@@ -1,5 +1,6 @@
 import requests
 import time
+import json
 
 class ActionManager:
     def __init__(self):
@@ -8,10 +9,11 @@ class ActionManager:
     def rent(self, action_name):
         try:
             res = requests.post("http://0.0.0.0:5000/rent", json = {"action_name": action_name})
-            if res.text == "NO":
+            if res.text == "no renter":
                 return None
             else:
-                return res.text
+                res_dict = json.loads(res.text)
+                return res_dict['id'], res_dict['port']
         except Exception:
             return None  
 
