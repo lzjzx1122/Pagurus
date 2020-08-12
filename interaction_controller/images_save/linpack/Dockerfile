@@ -1,5 +1,7 @@
-FROM lzjzx1122/python3actionlinpack
+FROM pagurus_base
 
-                    COPY requirements.txt /
+                COPY linpack.zip /proxy/actions/action_linpack.zip
 
-                    RUN pip3 install -r requirements.txt
+                COPY requirement.txt .
+
+                RUN pip3 install -r requirement.txt

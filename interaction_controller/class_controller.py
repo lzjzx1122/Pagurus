@@ -12,6 +12,7 @@ import numpy as np
 from threading import Thread, Lock
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
+from gevent import monkey
 
 def asynci(f):
         def wrapper(*args, **kwargs):
@@ -143,12 +144,12 @@ class node_controller():
         return True
 
     def image_base(self, action_name):
-        all_dockerfiles_content = open('build_file/docker_file.json', encoding='utf-8')
+        all_dockerfiles_content = open('build_file/packages.json', encoding='utf-8')
         all_dockerfiles = json.loads(all_dockerfiles_content.read())
         requirements = all_dockerfiles[action_name]
 
         save_path = 'images_save/' + action_name + '/'
-        file_path = save_path + 'requirements.txt'
+        file_path = save_path + 'requirement.txt'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
@@ -157,19 +158,19 @@ class node_controller():
             file_write.writelines(requirement + '\n')
 
         with open(save_path + 'Dockerfile', 'w') as f:
-            f.write('FROM pagurus_base\n\
-                COPY {}.zip /proxy/actions/action_{}.zip\n\
-                COPY requirements.txt .\n\
-                RUN pip install --no-cache-dir -r requirements.txt && rm requirements.txt'.format(action_name, action_name))
+            f.write('FROM pagurus_base\n\n\
+                COPY {}.zip /proxy/actions/action_{}.zip\n\n\
+                COPY requirement.txt .\n\n\
+                RUN pip3 install -r requirement.txt'.format(action_name, action_name))
                    
         os.system('cd {} && cp ../../actions/{}.zip . && docker build -t action_{} .'.format(save_path, action_name, action_name))
 
     def image_save(self, action_name, renters, requirements):  
-        all_dockerfiles_content = open('build_file/docker_file.json', encoding='utf-8')
+        all_dockerfiles_content = open('build_file/packages.json', encoding='utf-8')
         all_dockerfiles = json.loads(all_dockerfiles_content.read())
 
         save_path = 'images_save/' + action_name + '_repack/'
-        file_path = save_path + 'requirements.txt'
+        file_path = save_path + 'requirement.txt'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
@@ -183,8 +184,8 @@ class node_controller():
         with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM action_{}\n\
                     COPY {}.zip /proxy/actions/action_{}.zip\n\
-                    COPY requirements.txt .\n\
-                    RUN pip install --no-cache-dir -r requirements.txt && rm requirements.txt'.format(action_name, action_name, action_name))
+                    COPY requirement.txt /\n\
+                    RUN pip install --no-cache-dir -r requirement.txt && rm requirement.txt'.format(action_name, action_name, action_name))
                     
  
         os.system('cd {} && cp ../../actions/{}.zip . && docker build -t action_{}_repack .'.format(save_path, action_name, action_name))
@@ -211,8 +212,8 @@ class node_controller():
                 else:
                     res_dict = json.loads(res.text)
                     return lender, res['id'], res['port']
-                except Exception:
-                    return None
+            except Exception:
+                return None
         else:
             return None
 
@@ -223,6 +224,8 @@ test.packages_reload()
 #for action in action_list:
 #    test.action_repack(action, test.all_packages[action])
 test.print_info()
+
+monkey.patch_all()
 # a Flask instance.
 proxy = Flask(__name__)
 test_lock = Lock()
@@ -312,10 +315,10 @@ def rent():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
     res = test.action_scheduler(action_name)
-    print ("rent: ", action_name, " ", res[0], " ", res[2])
-    if lender == None:
+    if res == None:
         return ('no renter', 200)
     else:
+        print ("rent: ", action_name, " ", res[0], " ", res[2])
         return (json.dumps({"id": res[1], "port": res[2]}), 200)
 
 if __name__ == '__main__':
