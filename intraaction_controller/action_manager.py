@@ -10,7 +10,7 @@ class ActionManager:
         try:
             print("send rent: ", action_name)
             res = requests.post("http://0.0.0.0:5000/rent", json = {"action_name": action_name})
-            if res.text == "no renter":
+            if res.text == "no lender":
                 return None
             else:
                 res_dict = json.loads(res.text)

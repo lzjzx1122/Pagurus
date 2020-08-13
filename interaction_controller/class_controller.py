@@ -190,12 +190,15 @@ class node_controller():
 
         with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM action_{}\n'.format(action_name))
-            f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(action_name, action_name))
-            f.write('COPY requirements.txt .\n')
+            #f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(action_name, action_name))
+            for renter in renters.keys():
+                f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(renter, renter))
             if requirement_str != "":
                 f.write('RUN pip --no-cache-dir install{}'.format(requirement_str)) 
- 
-        os.system('cd {} && cp ../../actions/{}.zip . && docker build --no-cache -t action_{}_repack .'.format(save_path, action_name, action_name))
+        
+        for renter in renters.keys():
+            os.system('cd {} && cp ../../actions/{}.zip .'.format(save_path, renter))
+        os.system('cd {} && docker build --no-cache -t action_{}_repack .'.format(save_path, action_name))
         return False
 
     def action_repack(self, action_name, packages, share_action_number=2):
@@ -210,6 +213,7 @@ class node_controller():
 
     def action_scheduler(self, action_name):
         if action_name in self.renter_lender_info.keys() and len(self.renter_lender_info[action_name]) > 0:
+            print("scheduler: ", self.renter_lender_info[action_name])
             lender = max(self.renter_lender_info[action_name], key = self.renter_lender_info[action_name].get) 
             #不超过max_containers由intra保证
             try:
@@ -218,7 +222,7 @@ class node_controller():
                     return None
                 else:
                     res_dict = json.loads(res.text)
-                    return lender, res['id'], res['port']
+                    return lender, res_dict['id'], res_dict['port']
             except Exception:
                 return None
         else:
@@ -324,7 +328,8 @@ def rent():
     action_name = inp['action_name']
     res = test.action_scheduler(action_name)
     if res == None:
-        return ('no renter', 200)
+        print("rent: no lender")
+        return ('no lender', 200)
     else:
         print ("rent: ", action_name, " ", res[0], " ", res[2])
         return (json.dumps({"id": res[1], "port": res[2]}), 200)

@@ -66,7 +66,7 @@ def lend():
     if res is None:
         return ('no lender', 404)
     else:
-        return (json.dumps({"id": res[0], "post": res[1]}), 200)
+        return (json.dumps({"id": res[0], "port": res[1]}), 200)
 
 @proxy.route('/status', methods=['GET'])
 def status():
