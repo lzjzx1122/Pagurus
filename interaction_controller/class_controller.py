@@ -260,7 +260,6 @@ def listen():
     need_init = False
     if action_name not in test.action_info:
         need_init = True
-        #process = subprocess.Popen(['python3', 'tmp.py', action_name])
         process = subprocess.Popen(['python3', '../intraaction_controller/proxy.py', str(port_number_count)])
         #process = None
         test.action_info[action_name] = [port_number_count, process] 
@@ -276,7 +275,6 @@ def listen():
                 url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/init"
                 #print("init: ", url)
                 res = requests.post(url, json = {"action": action_name, "pwd": action_name, "QOS_time": 0.3, "QOS_requirement": 0.95, "min_port": container_port_number, "max_container": 10})
-                print("res: ", res)
                 if res.text == 'OK':
                     break
             except Exception:
@@ -317,7 +315,7 @@ def no_lender():
 def repack_image():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
-    print ("repack_image: ", action_name, " ", test.all_packages[action_name])
+    #print ("repack_image: ", action_name, " ", test.all_packages[action_name])
     test.action_repack(action_name, test.all_packages[action_name])
     test.print_info()
     return ("action_" + action_name + "_repack", 200)

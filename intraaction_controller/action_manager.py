@@ -21,6 +21,7 @@ class ActionManager:
     def create_pack_image(self, action_name):
         while True:
             try:
+                print("send create_pack_image: ", action_name)
                 res = requests.post("http://0.0.0.0:5000/repack_image", json = {"action_name": action_name})
                 return res.text
                 break
