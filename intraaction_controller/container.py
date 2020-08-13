@@ -55,4 +55,5 @@ class Container:
 
     # kill and remove the container
     def destroy(self):
+        print("################################## destory: ", self.port)
         self.container.remove(force=True)

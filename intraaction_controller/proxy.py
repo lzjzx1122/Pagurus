@@ -27,7 +27,7 @@ db_name = 'action_results'
 def init():
     global action
     data = request.get_json(force=True, silent=True)
-    print ("init :", data['action'], ' ', data['min_port'], ' ', data['max_container'])
+    #print ("init :", data['action'], ' ', data['min_port'], ' ', data['max_container'])
     
     db_server = couchdb.Server(couchdb_url)
     if db_name in db_server:
@@ -38,7 +38,7 @@ def init():
     action = Action(docker.from_env(),
                     data['action'],
                     data['pwd'],
-                    PortManager(data['min_port'], data['min_port'] + data['max_container'] - 1),
+                    PortManager(data['min_port'], data['min_port'] + data['max_container']),
                     ActionManager(),
                     db,
                     data['QOS_time'],
@@ -54,7 +54,7 @@ def repack():
 @proxy.route('/run', methods=['POST'])
 def run():
     data = request.get_json(force=True, silent=True)
-    print('run: ', data['request_id'], ' ', data['data'])
+    #print('run: ', data['request_id'], ' ', data['data'])
     if action == None:
         return ('NO', 404)
     action.send_request(data['request_id'], data['data'])
@@ -66,7 +66,7 @@ def lend():
     if res is None:
         return ('no lender', 404)
     else:
-        return (json.dumps({"id": res[0], "post": res[1]}), 200)
+        return (json.dumps({"id": res[0], "port": res[1]}), 200)
 
 @proxy.route('/status', methods=['GET'])
 def status():

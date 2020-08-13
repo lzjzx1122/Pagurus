@@ -23,4 +23,4 @@ def main(param):
     print('latency :',latency)
     return {"latency": latency}
 
-# main({'param':1000})
+main({'param':1000})
