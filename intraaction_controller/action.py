@@ -281,7 +281,7 @@ class Action:
         for c in old_container:
             self.remove_container(c)
         if repack_container is not None:
-            self.repack_container(repack_container)
+            repack_container = self.repack_container(repack_container)
             self.lender_pool.append(repack_container)
             
         if len(self.lender_pool) == 1:
