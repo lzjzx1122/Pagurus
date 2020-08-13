@@ -18,13 +18,13 @@ def test():
     end = time.time()
     print(i, " ", start, " ", end, " ", end - start)
 
-for _ in range(30):
+for _ in range(20):
     gevent.spawn(test)
     gevent.sleep(0.1)
 
 gevent.sleep(60)
 
-for _ in range(100):
+for _ in range(20):
     gevent.spawn(test)
     gevent.sleep(5)
 

@@ -38,7 +38,7 @@ def init():
     action = Action(docker.from_env(),
                     data['action'],
                     data['pwd'],
-                    PortManager(data['min_port'], data['min_port'] + data['max_container'] - 1),
+                    PortManager(data['min_port'], data['min_port'] + data['max_container']),
                     ActionManager(),
                     db,
                     data['QOS_time'],

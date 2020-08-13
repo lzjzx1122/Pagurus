@@ -156,16 +156,19 @@ class node_controller():
             os.makedirs(save_path)
 
         file_write = open(file_path, 'w')
+        requirement_str = ""
         for requirement in requirements:
             file_write.writelines(requirement + '\n')
+            requirement_str += " " + requirement
 
         with open(save_path + 'Dockerfile', 'w') as f:       
-            f.write('FROM action_{}\n'.format(action_name))
+            f.write('FROM pagurus_base\n')
             f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(action_name, action_name))
-            f.write('COPY requirements.txt .\n')
-            f.write('RUN pip3 install --no-cache-dir -r requirements.txt && rm requirements.txt')  
+            #f.write('COPY requirements.txt .\n')
+            if requirement_str != "":
+                f.write('RUN pip --no-cache-dir install{}'.format(requirement_str))  
         
-        os.system('cd {} && cp ../../actions/{}.zip . && docker build -t action_{} .'.format(save_path, action_name, action_name))
+        os.system('cd {} && cp ../../actions/{}.zip . && docker build --no-cache -t action_{} .'.format(save_path, action_name, action_name))
 
     def image_save(self, action_name, renters, requirements):  
         all_dockerfiles_content = open('build_file/packages.json', encoding='utf-8')
@@ -180,16 +183,19 @@ class node_controller():
             return True
 
         file_write = open(file_path, 'w')
+        requirement_str = ""
         for requirement in requirements:
             file_write.writelines(requirement + '\n')
+            requirement_str += " " + requirement
 
         with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM action_{}\n'.format(action_name))
             f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(action_name, action_name))
             f.write('COPY requirements.txt .\n')
-            f.write('RUN pip3 install --no-cache-dir -r requirements.txt && rm requirements.txt') 
+            if requirement_str != "":
+                f.write('RUN pip --no-cache-dir install{}'.format(requirement_str)) 
  
-        os.system('cd {} && cp ../../actions/{}.zip . && docker build -t action_{}_repack .'.format(save_path, action_name, action_name))
+        os.system('cd {} && cp ../../actions/{}.zip . && docker build --no-cache -t action_{}_repack .'.format(save_path, action_name, action_name))
         return False
 
     def action_repack(self, action_name, packages, share_action_number=2):
@@ -229,7 +235,7 @@ test.print_info()
 # a Flask instance.
 proxy = Flask(__name__)
 test_lock = Lock()
-container_port_number_count = 18081
+container_port_number_count = 18091
 port_number_count = 5001
 request_id_count = 0
 # listen user requests

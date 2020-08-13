@@ -156,8 +156,12 @@ class Action:
         if self.num_exec > self.max_container:
             return None
         
+        try:
+            container = Container.create(self.client, self.img_name, self.port_manager.get(), 'exec')
+        except Exception:
+            return None
+
         self.num_exec += 1
-        container = Container.create(self.client, self.img_name, self.port_manager.get(), 'exec')
         self.init_container(container)
         # self.put_container(container)
         # return True
@@ -254,6 +258,8 @@ class Action:
             alltime = self.request_log['alltime']
             self.request_log['alltime'] = []
             new_qos_real = sum([x < self.qos_time for x in alltime]) / len(alltime)
+
+            print("qos: ", new_qos_real, " ", update_rate, " ", sum([x < self.qos_time for x in alltime]), " ", len(alltime), " ", )
             self.qos_real = update_rate * self.qos_real + (1 - update_rate) * new_qos_real
 
     # do the repack and cleaning work regularly
@@ -273,6 +279,7 @@ class Action:
         if len(self.exec_pool) > 0:
             n = len(self.exec_pool) + len(self.lender_pool) + len(self.renter_pool)
             idle_sign = idle_status_check(1/self.lambd, n-1, 1/self.rec_mu, self.qos_time, self.qos_real, self.qos_requirement)
+            print("idle: ", idle_sign, " ", 1/self.lambd, " ", n-1, " ", 1/self.rec_mu, " ", self.qos_time, " ", self.qos_real, " ", self.qos_requirement)
             if idle_sign:
                 self.num_exec -= 1
                 repack_container = self.exec_pool.pop(0)
