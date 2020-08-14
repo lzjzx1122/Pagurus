@@ -56,7 +56,7 @@ class node_controller():
     
     def remove_lender(self, lender):
         if lender in self.lender_renter_info:
-            for renter in self.lender_renter_info[lender].keys():
+            for renter in list(self.lender_renter_info[lender].keys()):
                 self.renter_lender_info[renter].pop(lender)
             self.lender_renter_info.pop(lender)    
 
@@ -77,7 +77,7 @@ class node_controller():
         candidates = {}
         requirements = {}
         for (k1, v1) in packages.items():
-                for (k2, v2) in all_packages.items():
+                for (k2, v2) in list(all_packages.items()):
                     if (k1 in v2) and (v2[k1] != v1):
                         all_packages.pop(k2)
         packages_vector = []
@@ -128,13 +128,14 @@ class node_controller():
         if len(file_read) != len(requirements):
             return False
         for line in file_read:
+            l = line.replace('\n', '').replace('\r', '')
             lib, version = None, None
-            if "==" in line:
-                line_split = line.split("==")
-                lib = line_split[0]
-                version = line_split[1]
+            if "==" in l:
+                l_split = l.split("==")
+                lib = l_split[0]
+                version = l_split[1]
             else:
-                lib = line
+                lib = l
                 version = "default"
             if (lib not in requirements) or (version != requirements[lib]):
                 return False
@@ -165,8 +166,8 @@ class node_controller():
         os.system('cd {} && cp ../../actions/{}.zip . && docker build --no-cache -t action_{} .'.format(save_path, action_name, action_name))
 
     def image_save(self, action_name, renters, requirements):  
-        all_dockerfiles_content = open('build_file/packages.json', encoding='utf-8')
-        all_dockerfiles = json.loads(all_dockerfiles_content.read())
+        #all_dockerfiles_content = open('build_file/packages.json', encoding='utf-8')
+        #all_dockerfiles = json.loads(all_dockerfiles_content.read())
 
         save_path = 'images_save/' + action_name + '_repack/'
         file_path = save_path + 'requirements.txt'
@@ -233,11 +234,11 @@ class node_controller():
         return ret
 
     def check_sim(self):
-        for i in self.renter_lender_info:
+        for i in list(self.renter_lender_info):
             if max(self.renter_lender_info[i].values()) < 0.2:
                 res = requests.post(head_url+'/redirect', json={node_ip:i})
                 if i in self.lender_renter_info:
-                    for renter in self.lender_renter_info[i].keys():
+                    for renter in list(self.lender_renter_info[i].keys()):
                         self.renter_lender_info[renter].pop(i)
                     self.lender_renter_info.pop(i)    
                 res = requests.get(url = "http://0.0.0.0:" + str(test.action_info[i][0]) + "/end")
@@ -253,7 +254,7 @@ test.print_info()
 # a Flask instance.
 proxy = Flask(__name__)
 test_lock = Lock()
-container_port_number_count = 18091
+container_port_number_count = 18081
 port_number_count = 5001
 request_id_count = 0
 ############ add ip address ##############
