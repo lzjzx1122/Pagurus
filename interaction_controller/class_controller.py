@@ -1,5 +1,6 @@
 from gevent import monkey
 monkey.patch_all()
+import gevent
 import os
 import time
 import docker
@@ -7,7 +8,6 @@ import asyncio
 import queue
 import couchdb
 import subprocess
-#import requests
 import random
 import json
 import numpy as np
@@ -33,7 +33,6 @@ class node_controller():
         self.action_info = {} #{"action_name": [port_number, process]}
         self.package_path = "build_file/packages.json"
         self.all_packages = {}
-        self.info_lock = Lock()
 
     def print_info(self):
         print("----------------------------------------------------")
@@ -51,22 +50,17 @@ class node_controller():
             print("")
 
     def packages_reload(self):
-        #self.info_lock.acquire()
         all_packages = open(self.package_path, encoding='utf-8')
         all_packages_content = all_packages.read()
         self.all_packages = json.loads(all_packages_content)
-        #self.info_lock.release()
     
     def remove_lender(self, lender):
-        self.info_lock.acquire()
         if lender in self.lender_renter_info:
             for renter in self.lender_renter_info[lender].keys():
                 self.renter_lender_info[renter].pop(lender)
             self.lender_renter_info.pop(lender)    
-        self.info_lock.release()
 
     def add_lender(self, lender):
-        self.info_lock.acquire()
         renters = self.repack_info[lender]
         self.lender_renter_info[lender] = renters
         for (k, v) in renters.items():
@@ -74,7 +68,6 @@ class node_controller():
                 self.renter_lender_info.update({k: {lender: v}})
             else:
                 self.renter_lender_info[k].update({lender: v})
-        self.info_lock.release()
 
     def get_renters(self, action_name, packages, share_action_number=2):
         all_packages_content = open(self.package_path, encoding='utf-8')
@@ -166,7 +159,6 @@ class node_controller():
         with open(save_path + 'Dockerfile', 'w') as f:       
             f.write('FROM pagurus_base\n')
             f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(action_name, action_name))
-            #f.write('COPY requirements.txt .\n')
             if requirement_str != "":
                 f.write('RUN pip --no-cache-dir install{}'.format(requirement_str))  
         
@@ -192,7 +184,6 @@ class node_controller():
 
         with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM action_{}\n'.format(action_name))
-            #f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(action_name, action_name))
             for renter in renters.keys():
                 f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(renter, renter))
             if requirement_str != "":
@@ -207,9 +198,7 @@ class node_controller():
         renters, requirements = self.get_renters(action_name, packages, share_action_number)
         self.image_save(action_name, renters, requirements)
 
-        self.info_lock.acquire()
         self.repack_info[action_name] = renters        
-        self.info_lock.release()
         
         return renters
 
@@ -231,14 +220,13 @@ class node_controller():
             return None
 
 
-        def lender_list(self):
+    def lender_list(self):
         ret = []
-        tmp = dict()
-        with open('./build_file/packages.json','r')as fp:
+        with open('./build_file/packages.json','r') as fp:
             json_data = json.load(fp)
             for i in self.lender_renter_info:
+                tmp = dict()
                 tmp['name'] = i
-                packages = []
                 tmp['packages'] = json_data[i]
                 ret.append(tmp)
         
@@ -248,12 +236,10 @@ class node_controller():
         for i in self.renter_lender_info:
             if max(self.renter_lender_info[i].values()) < 0.2:
                 res = requests.post(head_url+'/redirect', json={node_ip:i})
-                self.info_lock.acquire()
                 if i in self.lender_renter_info:
                     for renter in self.lender_renter_info[i].keys():
                         self.renter_lender_info[renter].pop(i)
                     self.lender_renter_info.pop(i)    
-                self.info_lock.release()
                 res = requests.get(url = "http://0.0.0.0:" + str(test.action_info[i][0]) + "/end")
 
 #inter-action controller            
@@ -281,10 +267,8 @@ def listen():
     action_name = inp['action_name']
     params = inp['params']
     
-    global test_lock
-    test_lock.acquire()
-    global request_id_count
     global port_number_count
+    global request_id_count
     global container_port_number_count    
     request_id_count += 1
     request_id = request_id_count
@@ -297,7 +281,6 @@ def listen():
         test.action_info[action_name] = [port_number_count, process] 
         port_number_count += 1
         container_port_number_count += 10
-    test_lock.release()
 
     if need_init:
         test.image_base(action_name)
@@ -393,30 +376,24 @@ def load_info():
     node['net'] = (rxkB + txkB) / 1000 * 100 
     ret = dict()
     ret[node_ip] = node
-    return ret
+    return (json.dumps(ret), 200)
 
 @proxy.route('/lender-info', methods=['GET']) # need to install sar
 def lender_info():
     ret = dict()
     ret[node_ip] = test.lender_list()
-    return ret
+    return (json.dumps(ret), 200)
 
 def main():
-    server = WSGIServer(('0.0.0.0', 7899), proxy)
+    server = WSGIServer(('0.0.0.0', 5000), proxy)
     server.serve_forever()
 
 def check_similarity():
-    while 1:
-        print("begin to check similarity")
-        test.check_sim()
-        time.sleep(60*30)
+    print("begin to check similarity")
+    test.check_sim()
+    gevent.spawn_later(60 * 30, check_similarity)
 
 if __name__ == '__main__':
-    try:
-        _thread.start_new_thread( main, ( ) )
-        _thread.start_new_thread( check_similarity, ( ) )
-    except:
-        print('thread start fail')
-
-    while 1:
-        pass
+    gevent.spawn(main)
+    gevent.spawn_later(60 * 30, check_similarity)
+    gevent.wait()    
