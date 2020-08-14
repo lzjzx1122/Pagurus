@@ -177,16 +177,18 @@ class node_controller():
 
         if self.check_image(requirements, file_path):
             return
-        '''
+        
+        self.remove_lender(action_name)
+        
         if is_admin_request == True:
             while True:
                 try:
-                    res = requests.get('http://0.0.0.0' + str(self.action_info[action_name][0] + '/repack'))
+                    url = 'http://0.0.0.0:' + str(self.action_info[action_name][0]) + '/repack'
+                    res = requests.post(url)
                     if res.text == 'OK':
                         break
                 except Exception:
                     time.sleep(0.01)
-        '''
         self.repacking[action_name] = True
         
         file_write = open(file_path, 'w')
@@ -250,16 +252,16 @@ class node_controller():
         for i in list(self.renter_lender_info):
             if max(self.renter_lender_info[i].values()) < 0.2:
                 res = requests.post(head_url+'/redirect', json={node_ip:i})
-                if i in list(self.lender_renter_info):
-                    for renter in self.lender_renter_info[i].keys():
+                if i in self.lender_renter_info:
+                    for renter in list(self.lender_renter_info[i].keys()):
                         self.renter_lender_info[renter].pop(i)
                     self.lender_renter_info.pop(i)    
                 res = requests.get(url = "http://0.0.0.0:" + str(test.action_info[i][0]) + "/end")
 
 #inter-action controller            
 test = node_controller(1)
-test.all_packages['float_operation'] = {"requests" : "1.1", "numpy": "default"}
-test.repack_info['linpack'] = {}
+#test.all_packages['float_operation'] = {"requests" : "1.1", "numpy": "default"}
+#test.repack_info['linpack'] = {}
 #test.packages_reload()
 #action_list = ["disk", "linpack", "image"]
 #for action in action_list:
@@ -269,7 +271,7 @@ test.print_info()
 # a Flask instance.
 proxy = Flask(__name__)
 test_lock = Lock()
-container_port_number_count = 18091
+container_port_number_count = 18081
 port_number_count = 5001
 request_id_count = 0
 ############ add ip address ##############
