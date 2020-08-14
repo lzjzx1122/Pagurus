@@ -1,5 +1,6 @@
 from gevent import monkey
 monkey.patch_all()
+import gevent
 import os
 import time
 import docker
@@ -31,7 +32,6 @@ class node_controller():
         self.action_info = {} #{"action_name": [port_number, process]}
         self.package_path = "build_file/packages.json"
         self.all_packages = {}
-        self.info_lock = Lock()
 
     def print_info(self):
         print("----------------------------------------------------")
@@ -49,22 +49,17 @@ class node_controller():
             print("")
 
     def packages_reload(self):
-        #self.info_lock.acquire()
         all_packages = open(self.package_path, encoding='utf-8')
         all_packages_content = all_packages.read()
         self.all_packages = json.loads(all_packages_content)
-        #self.info_lock.release()
     
     def remove_lender(self, lender):
-        self.info_lock.acquire()
         if lender in self.lender_renter_info:
             for renter in self.lender_renter_info[lender].keys():
                 self.renter_lender_info[renter].pop(lender)
             self.lender_renter_info.pop(lender)    
-        self.info_lock.release()
 
     def add_lender(self, lender):
-        self.info_lock.acquire()
         renters = self.repack_info[lender]
         self.lender_renter_info[lender] = renters
         for (k, v) in renters.items():
@@ -72,7 +67,6 @@ class node_controller():
                 self.renter_lender_info.update({k: {lender: v}})
             else:
                 self.renter_lender_info[k].update({lender: v})
-        self.info_lock.release()
 
     def get_renters(self, action_name, packages, share_action_number=2):
         all_packages_content = open(self.package_path, encoding='utf-8')
@@ -204,11 +198,7 @@ class node_controller():
     def action_repack(self, action_name, packages, share_action_number=2):
         renters, requirements = self.get_renters(action_name, packages, share_action_number)
         self.image_save(action_name, renters, requirements)
-
-        self.info_lock.acquire()
         self.repack_info[action_name] = renters        
-        self.info_lock.release()
-        
         return renters
 
     def action_scheduler(self, action_name):
@@ -231,14 +221,10 @@ class node_controller():
 #inter-action controller            
 test = node_controller(1)
 test.packages_reload()
-#action_list = ["disk", "linpack", "image"]
-#for action in action_list:
-#    test.action_repack(action, test.all_packages[action])
 test.print_info()
 
 # a Flask instance.
 proxy = Flask(__name__)
-test_lock = Lock()
 container_port_number_count = 18091
 port_number_count = 5001
 request_id_count = 0
@@ -249,8 +235,6 @@ def listen():
     action_name = inp['action_name']
     params = inp['params']
     
-    global test_lock
-    test_lock.acquire()
     global request_id_count
     global port_number_count
     global container_port_number_count    
@@ -265,7 +249,6 @@ def listen():
         test.action_info[action_name] = [port_number_count, process] 
         port_number_count += 1
         container_port_number_count += 10
-    test_lock.release()
 
     if need_init:
         test.image_base(action_name)
@@ -332,6 +315,10 @@ def rent():
         print ("rent: ", action_name, " ", res[0], " ", res[2])
         return (json.dumps({"id": res[1], "port": res[2]}), 200)
 
+def check():
+    print("********************************************* check")
+    gevent.spawn_later(5, check)
+
 if __name__ == '__main__':
-    server = WSGIServer(('0.0.0.0', 5000), proxy)
     server.serve_forever()
+    server = WSGIServer(('0.0.0.0', 5000), proxy)
