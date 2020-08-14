@@ -33,6 +33,7 @@ class node_controller():
         self.action_info = {} #{"action_name": [port_number, process]}
         self.package_path = "build_file/packages.json"
         self.all_packages = {}
+        self.repacking = {} #{"action_name", True / False}
 
     def print_info(self):
         print("----------------------------------------------------")
@@ -56,11 +57,14 @@ class node_controller():
     
     def remove_lender(self, lender):
         if lender in self.lender_renter_info:
-            for renter in self.lender_renter_info[lender].keys():
+            for renter in list(self.lender_renter_info[lender].keys()):
                 self.renter_lender_info[renter].pop(lender)
             self.lender_renter_info.pop(lender)    
 
     def add_lender(self, lender):
+        while (lender in self.repacking) and (self.repacking[lender] == True):
+            gevent.sleep(0)
+
         renters = self.repack_info[lender]
         self.lender_renter_info[lender] = renters
         for (k, v) in renters.items():
@@ -70,14 +74,15 @@ class node_controller():
                 self.renter_lender_info[k].update({lender: v})
 
     def get_renters(self, action_name, packages, share_action_number=2):
-        all_packages_content = open(self.package_path, encoding='utf-8')
-        all_packages = json.loads(all_packages_content.read())
+        #all_packages_content = open(self.package_path, encoding='utf-8')
+        #all_packages = json.loads(all_packages_content.read())
+        all_packages = self.all_packages.copy()
         all_packages.pop(action_name)
         renters = {}
         candidates = {}
         requirements = {}
         for (k1, v1) in packages.items():
-                for (k2, v2) in all_packages.items():
+                for (k2, v2) in list(all_packages.items()):
                     if (k1 in v2) and (v2[k1] != v1):
                         all_packages.pop(k2)
         packages_vector = []
@@ -104,7 +109,6 @@ class node_controller():
             candidates[candidate] = (np.dot(vector_x, vector_y) / (np.linalg.norm(vector_x) * np.linalg.norm(vector_y)))
             vector_y = []
         #calculate the vector_y and cos distance
-        #print ("candidates: ", action_name, " ", candidates)
         while len(candidates) > 0 and share_action_number > 0:
             renter = max(candidates, key = candidates.get)
             flag = True
@@ -118,7 +122,6 @@ class node_controller():
                 renters.update({renter: candidates[renter]})
                 share_action_number -= 1
             candidates.pop(renter)
-        #print("renters: ", renters)
         return renters, requirements
 
     def check_image(self, requirements, file_path):
@@ -128,22 +131,24 @@ class node_controller():
         if len(file_read) != len(requirements):
             return False
         for line in file_read:
+            l = line.replace('\n', '').replace('\r', '')
             lib, version = None, None
-            if "==" in line:
-                line_split = line.split("==")
-                lib = line_split[0]
-                version = line_split[1]
+            if "==" in l:
+                l_split = l.split("==")
+                lib = l_split[0]
+                version = l_split[1]
             else:
-                lib = line
+                lib = l
                 version = "default"
             if (lib not in requirements) or (version != requirements[lib]):
                 return False
         return True
 
     def image_base(self, action_name):
-        all_dockerfiles_content = open('build_file/packages.json', encoding='utf-8')
-        all_dockerfiles = json.loads(all_dockerfiles_content.read())
-        requirements = all_dockerfiles[action_name]
+        #all_dockerfiles_content = open('build_file/packages.json', encoding='utf-8')
+        #all_dockerfiles = json.loads(all_dockerfiles_content.read())
+        #requirements = all_dockerfiles[action_name]
+        requirements = self.all_packages[action_name]
 
         save_path = 'images_save/' + action_name + '/'
         file_path = save_path + 'requirements.txt'
@@ -164,18 +169,26 @@ class node_controller():
         
         os.system('cd {} && cp ../../actions/{}.zip . && docker build --no-cache -t action_{} .'.format(save_path, action_name, action_name))
 
-    def image_save(self, action_name, renters, requirements):  
-        all_dockerfiles_content = open('build_file/packages.json', encoding='utf-8')
-        all_dockerfiles = json.loads(all_dockerfiles_content.read())
-
+    def image_save(self, action_name, renters, requirements, is_admin_request=False):  
         save_path = 'images_save/' + action_name + '_repack/'
         file_path = save_path + 'requirements.txt'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
         if self.check_image(requirements, file_path):
-            return True
-
+            return
+        '''
+        if is_admin_request == True:
+            while True:
+                try:
+                    res = requests.get('http://0.0.0.0' + str(self.action_info[action_name][0] + '/repack'))
+                    if res.text == 'OK':
+                        break
+                except Exception:
+                    time.sleep(0.01)
+        '''
+        self.repacking[action_name] = True
+        
         file_write = open(file_path, 'w')
         requirement_str = ""
         for requirement in requirements:
@@ -192,12 +205,13 @@ class node_controller():
         for renter in renters.keys():
             os.system('cd {} && cp ../../actions/{}.zip .'.format(save_path, renter))
         os.system('cd {} && docker build --no-cache -t action_{}_repack .'.format(save_path, action_name))
-        return False
+        
+        self.repacking[action_name] = False
 
-    def action_repack(self, action_name, packages, share_action_number=2):
+    def action_repack(self, action_name, packages, is_admin_request=False, share_action_number=2):
         renters, requirements = self.get_renters(action_name, packages, share_action_number)
-        self.image_save(action_name, renters, requirements)
-
+        print("get_renters: ", renters, requirements)
+        self.image_save(action_name, renters, requirements, is_admin_request)
         self.repack_info[action_name] = renters        
         
         return renters
@@ -233,10 +247,10 @@ class node_controller():
         return ret
 
     def check_sim(self):
-        for i in self.renter_lender_info:
+        for i in list(self.renter_lender_info):
             if max(self.renter_lender_info[i].values()) < 0.2:
                 res = requests.post(head_url+'/redirect', json={node_ip:i})
-                if i in self.lender_renter_info:
+                if i in list(self.lender_renter_info):
                     for renter in self.lender_renter_info[i].keys():
                         self.renter_lender_info[renter].pop(i)
                     self.lender_renter_info.pop(i)    
@@ -244,7 +258,9 @@ class node_controller():
 
 #inter-action controller            
 test = node_controller(1)
-test.packages_reload()
+test.all_packages['float_operation'] = {"requests" : "1.1", "numpy": "default"}
+test.repack_info['linpack'] = {}
+#test.packages_reload()
 #action_list = ["disk", "linpack", "image"]
 #for action in action_list:
 #    test.action_repack(action, test.all_packages[action])
@@ -260,6 +276,38 @@ request_id_count = 0
 hostname = socket.gethostname()
 node_ip = socket.gethostbyname(hostname)
 
+@proxy.route('/admin', methods=['POST'])
+def admin():
+    inp = request.get_json(force=True, silent=True)
+    action_name = inp['action_name']
+    packages = inp['packages']
+    print("admin: ", action_name, " ", packages)
+    
+    global port_number_count
+    global container_port_number_count    
+    process = subprocess.Popen(['python3', '../intraaction_controller/proxy.py', str(port_number_count)])
+    #process = None
+    test.all_packages[action_name] = packages
+    test.action_info[action_name] = [port_number_count, process] 
+    port_number_count += 1
+    container_port_number = container_port_number_count
+    container_port_number_count += 10
+
+    test.image_base(action_name)
+    while True:
+        try:
+            url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/init"
+            res = requests.post(url, json = {"action": action_name, "pwd": action_name, "QOS_time": 0.3, "QOS_requirement": 0.95, "min_port": container_port_number, "max_container": 10})
+            if res.text == 'OK':
+                break
+        except Exception:
+            time.sleep(0.01)       
+    
+    for action in test.repack_info.keys():
+        test.action_repack(action, test.all_packages[action], True)
+    
+    return ('OK', 200)
+
 # listen user requests
 @proxy.route('/listen', methods=['POST'])
 def listen():
@@ -267,36 +315,12 @@ def listen():
     action_name = inp['action_name']
     params = inp['params']
     
-    global port_number_count
     global request_id_count
-    global container_port_number_count    
     request_id_count += 1
     request_id = request_id_count
-    container_port_number = container_port_number_count
-    need_init = False
-    if action_name not in test.action_info:
-        need_init = True
-        process = subprocess.Popen(['python3', '../intraaction_controller/proxy.py', str(port_number_count)])
-        #process = None
-        test.action_info[action_name] = [port_number_count, process] 
-        port_number_count += 1
-        container_port_number_count += 10
-
-    if need_init:
-        test.image_base(action_name)
-        #print("need_init") 
-        while True:
-            try:
-                url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/init"
-                #print("init: ", url)
-                res = requests.post(url, json = {"action": action_name, "pwd": action_name, "QOS_time": 0.3, "QOS_requirement": 0.95, "min_port": container_port_number, "max_container": 10})
-                if res.text == 'OK':
-                    break
-            except Exception:
-                time.sleep(0.01)       
-
-    print ("listen: ", request_id, " ", action_name)
-
+    
+    print("listen: ", action_name, " ", params)
+    
     while True:
         try:
             url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/run"
