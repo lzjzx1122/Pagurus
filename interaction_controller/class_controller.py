@@ -1,3 +1,6 @@
+# befor running, maybe you need to edit node_port, head_url
+# also, remember to install sar first
+# in function load_info, some arrays need to be changed according to your system
 from gevent import monkey
 monkey.patch_all()
 import gevent
@@ -27,9 +30,9 @@ def asynci(f):
 class node_controller():
     def __init__(self, node_id):
         self.node_id = node_id
-        self.renter_lender_info = {} #{"renter A": [lender B: cos, lender C:cos]}
-        self.lender_renter_info = {} #{"lender A": [renter B: cos, renter C:cos]}
-        self.repack_info = {} #{"lender A": [renter B: cos, renter C:cos]}
+        self.renter_lender_info = {} #{"renter A": {"lender B": cos, "lender C":cos}}
+        self.lender_renter_info = {} #{"lender A": {"renter B": cos, "renter C":cos}}
+        self.repack_info = {} #{"lender A": {"renter B": cos, "renter C":cos}}
         self.action_info = {} #{"action_name": [port_number, process]}
         self.package_path = "build_file/packages.json"
         self.all_packages = {}
@@ -236,7 +239,13 @@ class node_controller():
     def check_sim(self):
         for i in list(self.renter_lender_info):
             if max(self.renter_lender_info[i].values()) < 0.2:
-                res = requests.post(head_url+'/redirect', json={node_ip:i})
+                action_delete_info = dict()
+                action_delete_info['name']=i
+                with open('./build_file/packages.json','r') as fp:
+                    json_data = json.load(fp)
+                    action_delete_info['packages'] = json_data[i]
+                tmp = [action_delete_info]
+                res = requests.post(head_url+'/redirect', json={node_ip:tmp})
                 if i in self.lender_renter_info:
                     for renter in list(self.lender_renter_info[i].keys()):
                         self.renter_lender_info[renter].pop(i)
@@ -260,6 +269,10 @@ request_id_count = 0
 ############ add ip address ##############
 hostname = socket.gethostname()
 node_ip = socket.gethostbyname(hostname)
+node_port = 5000
+node_ip = node_ip + ':' + str(node_port)
+
+head_url = "0.0.0.0:5001"
 
 # listen user requests
 @proxy.route('/listen', methods=['POST'])
@@ -358,7 +371,8 @@ def load_info():
 
     mem = subprocess.Popen(["sar", "-r", "1", "1"], stdout=subprocess.PIPE, encoding='UTF-8')
     mem_info = mem.stdout.read()
-    mem_load = float(list(filter(None, mem_info[mem_info.find("Average"):].split(' ')))[4])
+    mem_load = float(list(filter(None, mem_info[mem_info.find("Average"):].split(' ')))[3])  
+    # maybe need to change 3 to 4
 
     net = subprocess.Popen(["sar", "-n", "DEV", "1", "1"], stdout=subprocess.PIPE, encoding='UTF-8')
     net_info = net.stdout.read()
@@ -386,7 +400,7 @@ def lender_info():
     return (json.dumps(ret), 200)
 
 def main():
-    server = WSGIServer(('0.0.0.0', 5000), proxy)
+    server = WSGIServer(('0.0.0.0', node_port), proxy)
     server.serve_forever()
 
 def check_similarity():
