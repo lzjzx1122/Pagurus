@@ -237,8 +237,8 @@ def handle_redirect():
         # print(server_addr, file=sys.stderr)
         return 404, 'server not found'
     action_data = data[server_addr][0]
-    return load_balancer.redirect(server_node, action_data)
-
+    load_balancer.redirect(server_node, action_data)
+    return ('OK', 200)
 
 @head.route('/route-table', methods=['GET'])
 def route_table():

@@ -36,27 +36,37 @@ class node_controller():
         self.action_info = {} #{"action_name": [port_number, process]}
         self.package_path = "build_file/packages.json"
         self.all_packages = {}
+        self.repacking = {} #{"action_name", True / False}
+        self.active_set = set()
 
     def print_info(self):
-        print("----------------------------------------------------")
-        print("lender_renter_info:")
+        #print("----------------------------------------------------")
+        print("lender_renter_info:", self.lender_renter_info)
+        '''
         for lender in self.lender_renter_info:
             print(lender, end = ": ")
             for (renter, value) in self.lender_renter_info[lender].items():
                 print(renter, " ", value, end = " ")
             print("")
-        print("renter_lender_info:")
+        '''
+        print("renter_lender_info:", self.renter_lender_info)
+        '''
         for renter in self.renter_lender_info:
             print(renter, end = ": ")
             for (lender, value) in self.renter_lender_info[renter].items():
                 print(lender, " ", value, end = " ")
             print("")
+        '''
 
-    def packages_reload(self):
+    def packages_reload(self, active_set=None):
         all_packages = open(self.package_path, encoding='utf-8')
         all_packages_content = all_packages.read()
         self.all_packages = json.loads(all_packages_content)
-    
+        if active_set != None:
+            for action in list(self.all_packages.keys()):
+                if action not in active_set:
+                    self.all_packages.pop(action)
+        
     def remove_lender(self, lender):
         if lender in self.lender_renter_info:
             for renter in list(self.lender_renter_info[lender].keys()):
@@ -64,6 +74,9 @@ class node_controller():
             self.lender_renter_info.pop(lender)    
 
     def add_lender(self, lender):
+        while (lender in self.repacking) and (self.repacking[lender] == True):
+            gevent.sleep(0)
+
         renters = self.repack_info[lender]
         self.lender_renter_info[lender] = renters
         for (k, v) in renters.items():
@@ -73,8 +86,9 @@ class node_controller():
                 self.renter_lender_info[k].update({lender: v})
 
     def get_renters(self, action_name, packages, share_action_number=2):
-        all_packages_content = open(self.package_path, encoding='utf-8')
-        all_packages = json.loads(all_packages_content.read())
+        #all_packages_content = open(self.package_path, encoding='utf-8')
+        #all_packages = json.loads(all_packages_content.read())
+        all_packages = self.all_packages.copy()
         all_packages.pop(action_name)
         renters = {}
         candidates = {}
@@ -107,7 +121,6 @@ class node_controller():
             candidates[candidate] = (np.dot(vector_x, vector_y) / (np.linalg.norm(vector_x) * np.linalg.norm(vector_y)))
             vector_y = []
         #calculate the vector_y and cos distance
-        #print ("candidates: ", action_name, " ", candidates)
         while len(candidates) > 0 and share_action_number > 0:
             renter = max(candidates, key = candidates.get)
             flag = True
@@ -121,7 +134,6 @@ class node_controller():
                 renters.update({renter: candidates[renter]})
                 share_action_number -= 1
             candidates.pop(renter)
-        #print("renters: ", renters)
         return renters, requirements
 
     def check_image(self, requirements, file_path):
@@ -145,9 +157,10 @@ class node_controller():
         return True
 
     def image_base(self, action_name):
-        all_dockerfiles_content = open('build_file/packages.json', encoding='utf-8')
-        all_dockerfiles = json.loads(all_dockerfiles_content.read())
-        requirements = all_dockerfiles[action_name]
+        #all_dockerfiles_content = open('build_file/packages.json', encoding='utf-8')
+        #all_dockerfiles = json.loads(all_dockerfiles_content.read())
+        #requirements = all_dockerfiles[action_name]
+        requirements = self.all_packages[action_name]
 
         save_path = 'images_save/' + action_name + '/'
         file_path = save_path + 'requirements.txt'
@@ -168,18 +181,28 @@ class node_controller():
         
         os.system('cd {} && cp ../../actions/{}.zip . && docker build --no-cache -t action_{} .'.format(save_path, action_name, action_name))
 
-    def image_save(self, action_name, renters, requirements):  
-        #all_dockerfiles_content = open('build_file/packages.json', encoding='utf-8')
-        #all_dockerfiles = json.loads(all_dockerfiles_content.read())
-
+    def image_save(self, action_name, renters, requirements, repack_updating=False):  
         save_path = 'images_save/' + action_name + '_repack/'
         file_path = save_path + 'requirements.txt'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
         if self.check_image(requirements, file_path):
-            return True
-
+            return
+        
+        self.remove_lender(action_name)
+        
+        if repack_updating == True:
+            while True:
+                try:
+                    url = 'http://0.0.0.0:' + str(self.action_info[action_name][0]) + '/repack'
+                    res = requests.post(url)
+                    if res.text == 'OK':
+                        break
+                except Exception:
+                    time.sleep(0.01)
+        self.repacking[action_name] = True
+        
         file_write = open(file_path, 'w')
         requirement_str = ""
         for requirement in requirements:
@@ -196,12 +219,13 @@ class node_controller():
         for renter in renters.keys():
             os.system('cd {} && cp ../../actions/{}.zip .'.format(save_path, renter))
         os.system('cd {} && docker build --no-cache -t action_{}_repack .'.format(save_path, action_name))
-        return False
+        
+        self.repacking[action_name] = False
 
-    def action_repack(self, action_name, packages, share_action_number=2):
+    def action_repack(self, action_name, packages, repack_updating=False, share_action_number=2):
         renters, requirements = self.get_renters(action_name, packages, share_action_number)
-        self.image_save(action_name, renters, requirements)
-
+        print("get_renters: ", renters, requirements)
+        self.image_save(action_name, renters, requirements, repack_updating)
         self.repack_info[action_name] = renters        
         
         return renters
@@ -240,29 +264,108 @@ class node_controller():
         for i in list(self.renter_lender_info):
             if max(self.renter_lender_info[i].values()) < 0.2:
                 action_delete_info = dict()
-                action_delete_info['name']=i
+                action_delete_info['name'] = i
                 with open('./build_file/packages.json','r') as fp:
                     json_data = json.load(fp)
                     action_delete_info['packages'] = json_data[i]
                 tmp = [action_delete_info]
-                res = requests.post(head_url+'/redirect', json={node_ip:tmp})
+                
+                while True:
+                    try:
+                        res = requests.post(head_url + '/redirect', json={node_ip:tmp})
+                        if res.text == 'OK':  
+                           break
+                    except Exception:
+                        time.sleep(0.01)
+
+                url = 'http://0.0.0.0:' + str(test.action_info[action][0]) + '/end'
+                while True:
+                    try:
+                        res = requests.post(url)
+                        if res.text == 'OK':
+                            break
+                    except Exception:
+                        time.sleep(0.01)
+                    
                 if i in self.lender_renter_info:
-                    for renter in list(self.lender_renter_info[i].keys()):
+                    for renter in self.lender_renter_info[i].keys():
                         self.renter_lender_info[renter].pop(i)
                     self.lender_renter_info.pop(i)    
-                res = requests.get(url = "http://0.0.0.0:" + str(test.action_info[i][0]) + "/end")
+
+                for lender in self.renter_lender_info[i].keys():
+                    self.lender_renter_info[lender].pop(i)
+                self.renter_lender_info.pop(i)
+                
+                if i in self.active_set:
+                    self.active_set.remove(i)
+                
+                if i in self.repack_info:
+                    self.repack_info.pop(i)
+                
+                self.action_info.pop(i)
+
+def update_repack():
+    print("############################### update_repack begin")
+    test.packages_reload(test.active_set)
+    
+    for action in list(test.action_info.keys()):
+        if action not in test.active_set:
+            url = 'http://0.0.0.0:' + str(test.action_info[action][0]) + '/end'
+            while True:
+                try:
+                    res = requests.post(url)
+                    if res.text == 'OK':
+                        break
+                except Exception:
+                    time.sleep(0.01)
+            test.action_info.pop(action)
+    
+    for lender in list(test.repack_info.keys()):
+        if lender not in test.active_set:
+            test.repack_info.pop(lender)
+        else:
+            test.action_repack(lender, test.all_packages[lender], True)
+    
+    test.renter_lender_info.clear()
+    for lender in list(test.lender_renter_info.keys()):
+        if lender not in test.active_set:
+            test.lender_renter_info.pop(lender)
+        else:
+            renters = test.repack_info[lender]
+            test.lender_renter_info[lender] = renters
+            for renter in renters:
+                if renter not in test.renter_lender_info:
+                    test.renter_lender_info[renter] = {lender: renters[renter]}
+                else:
+                    test.renter_lender_info[renter].update({lender: renters[renter]})
+    
+    test.active_set.clear()
+    
+    gevent.spawn_later(6, update_repack)
+
 
 #inter-action controller            
 test = node_controller(1)
 test.packages_reload()
-#action_list = ["disk", "linpack", "image"]
-#for action in action_list:
-#    test.action_repack(action, test.all_packages[action])
 test.print_info()
+
+# The following code are used to test repack_update()    
+'''
+sim_list = ['float_operation']
+for action in sim_list:
+    test.action_repack(action, test.all_packages[action], True)
+    test.add_lender(action)
+print(test.repack_info)
+test.print_info()
+
+test.active_set.add('float_operation')
+update_repack()
+print(test.repack_info)
+test.print_info()
+'''
 
 # a Flask instance.
 proxy = Flask(__name__)
-test_lock = Lock()
 container_port_number_count = 18081
 port_number_count = 5001
 request_id_count = 0
@@ -274,6 +377,10 @@ node_ip = node_ip + ':' + str(node_port)
 
 head_url = "http://0.0.0.0:5100"
 
+update_repack_cycle = 60
+check_similarity_cycle = 60 * 30
+
+    
 # listen user requests
 @proxy.route('/listen', methods=['POST'])
 def listen():
@@ -309,6 +416,7 @@ def listen():
             except Exception:
                 time.sleep(0.01)       
 
+    test.active_set.add(action_name)
     print ("listen: ", request_id, " ", action_name)
 
     while True:
@@ -406,9 +514,49 @@ def main():
 def check_similarity():
     print("begin to check similarity")
     test.check_sim()
-    gevent.spawn_later(60 * 30, check_similarity)
+    gevent.spawn_later(check_similarity_cycle, check_similarity)
+
+def update_repack():
+    print("############################### update_repack begin")
+    test.packages_reload(test.active_set)
+    
+    for action in list(test.action_info.keys()):
+        if action not in test.active_set:
+            url = 'http://0.0.0.0:' + str(test.action_info[action][0]) + '/end'
+            while True:
+                try:
+                    res = requests.post(url)
+                    if res.text == 'OK':
+                        break
+                except Exception:
+                    time.sleep(0.01)
+            test.action_info.pop(action)
+    
+    for lender in list(test.repack_info.keys()):
+        if lender not in test.active_set:
+            test.repack_info.pop(lender)
+        else:
+            test.action_repack(lender, test.all_packages[lender], True)
+    
+    test.renter_lender_info.clear()
+    for lender in list(test.lender_renter_info.keys()):
+        if lender not in test.active_set:
+            test.lender_renter_info.pop(lender)
+        else:
+            renters = test.repack_info[lender]
+            test.lender_renter_info[lender] = renters
+            for renter in renters:
+                if renter not in test.renter_lender_info:
+                    test.renter_lender_info[renter] = {lender: renters[renter]}
+                else:
+                    test.renter_lender_info[renter].update({lender: renters[renter]})
+    
+    test.active_set.clear()
+    
+    gevent.spawn_later(update_repack_cycle, update_repack)
 
 if __name__ == '__main__':
     gevent.spawn(main)
-    gevent.spawn_later(60 * 30, check_similarity)
+    gevent.spawn_later(update_repack_cycle, update_repack)
+    gevent.spawn_later(check_similarity_cycle, check_similarity)
     gevent.wait()    
