@@ -6,7 +6,7 @@ from container import Container
 from idle_container_algorithm import idle_status_check
 
 repack_clean_interval = 5.000 # repack and clean every 5 seconds
-dispatch_interval = 0.005 # 200 qps at most
+dispatch_interval = 0.05 # 200 qps at most
 timer = None
 update_rate = 0.65 # the update rate of lambda and mu
 
@@ -106,6 +106,7 @@ class Action:
 
         # the number of exec container hits limit
         if container is None:
+            tmp_time = time.time()
             self.num_processing -= 1
             return
 

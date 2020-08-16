@@ -1,3 +1,5 @@
+from gevent import monkey
+monkey.patch_all()
 import subprocess
 from flask import Flask, request, Response
 import requests
@@ -216,7 +218,7 @@ def get_server_info(net_bandwidth):
     return ret
 
 
-load_balancer = LoadBalancer(['0.0.0.0:5000'])#, '0.0.0.0:5002', '0.0.0.0:5003'])
+load_balancer = LoadBalancer(['10.2.64.8:5000'])#, '0.0.0.0:5002', '0.0.0.0:5003'])
 head = Flask(__name__)
 head.debug = False
 
@@ -237,7 +239,8 @@ def handle_redirect():
         # print(server_addr, file=sys.stderr)
         return 404, 'server not found'
     action_data = data[server_addr][0]
-    load_balancer.redirect(server_node, action_data)
+    print("redirect:", server_addr, action_data)
+    #load_balancer.redirect(server_node, action_data)
     return ('OK', 200)
 
 @head.route('/route-table', methods=['GET'])

@@ -28,20 +28,25 @@ def test2():
     end = time.time()
     print(i, " ", start, " ", end, " ", end - start)
 
+test()
+
 for _ in range(20):
     gevent.spawn(test)
     gevent.sleep(0.1)
 
 gevent.sleep(10)
 
-for _ in range(10):
+for _ in range(20):
     gevent.spawn(test)
-    gevent.sleep(1)
+    gevent.sleep(5)
 
-#gevent.sleep(20)
-#for _ in range(30):
-#    gevent.spawn(test2)
-#    gevent.sleep(0.1)
+#gevent.sleep(10)
+
+test2()
+
+for _ in range(20):
+    gevent.spawn(test2)
+    gevent.sleep(0.1)
 
 gevent.wait()
 

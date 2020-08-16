@@ -7,25 +7,16 @@ import gevent
 import os
 import time
 import docker
-import asyncio
 import queue
 import couchdb
 import subprocess
 import random
 import json
 import numpy as np
-from threading import Thread, Lock
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 import requests
 import socket
-import _thread
-
-def asynci(f):
-        def wrapper(*args, **kwargs):
-            thr = Thread(target=f, args=args, kwargs=kwargs)
-            thr.start()
-        return wrapper
 
 class node_controller():
     def __init__(self, node_id):
@@ -157,10 +148,10 @@ class node_controller():
         return True
 
     def image_base(self, action_name):
-        #all_dockerfiles_content = open('build_file/packages.json', encoding='utf-8')
-        #all_dockerfiles = json.loads(all_dockerfiles_content.read())
-        #requirements = all_dockerfiles[action_name]
-        requirements = self.all_packages[action_name]
+        all_dockerfiles_content = open('build_file/packages.json', encoding='utf-8')
+        all_dockerfiles = json.loads(all_dockerfiles_content.read())
+        requirements = all_dockerfiles[action_name]
+        #requirements = self.all_packages[action_name]
 
         save_path = 'images_save/' + action_name + '/'
         file_path = save_path + 'requirements.txt'
@@ -262,7 +253,7 @@ class node_controller():
 
     def check_sim(self):
         for i in list(self.renter_lender_info):
-            if max(self.renter_lender_info[i].values()) < 0.2:
+            if len(self.renter_lender_info[i].values()) == 0 or max(self.renter_lender_info[i].values()) < 0.2:
                 action_delete_info = dict()
                 action_delete_info['name'] = i
                 with open('./build_file/packages.json','r') as fp:
@@ -272,12 +263,14 @@ class node_controller():
                 
                 while True:
                     try:
+                        print("try:", head_url + '/redirect')
                         res = requests.post(head_url + '/redirect', json={node_ip:tmp})
                         if res.text == 'OK':  
                            break
-                    except Exception:
+                    except Exception as e:
+                        print("e:", e)
                         time.sleep(0.01)
-
+                
                 url = 'http://0.0.0.0:' + str(test.action_info[action][0]) + '/end'
                 while True:
                     try:
@@ -286,7 +279,7 @@ class node_controller():
                             break
                     except Exception:
                         time.sleep(0.01)
-                    
+
                 if i in self.lender_renter_info:
                     for renter in self.lender_renter_info[i].keys():
                         self.renter_lender_info[renter].pop(i)
@@ -303,66 +296,11 @@ class node_controller():
                     self.repack_info.pop(i)
                 
                 self.action_info.pop(i)
-
-def update_repack():
-    print("############################### update_repack begin")
-    test.packages_reload(test.active_set)
     
-    for action in list(test.action_info.keys()):
-        if action not in test.active_set:
-            url = 'http://0.0.0.0:' + str(test.action_info[action][0]) + '/end'
-            while True:
-                try:
-                    res = requests.post(url)
-                    if res.text == 'OK':
-                        break
-                except Exception:
-                    time.sleep(0.01)
-            test.action_info.pop(action)
-    
-    for lender in list(test.repack_info.keys()):
-        if lender not in test.active_set:
-            test.repack_info.pop(lender)
-        else:
-            test.action_repack(lender, test.all_packages[lender], True)
-    
-    test.renter_lender_info.clear()
-    for lender in list(test.lender_renter_info.keys()):
-        if lender not in test.active_set:
-            test.lender_renter_info.pop(lender)
-        else:
-            renters = test.repack_info[lender]
-            test.lender_renter_info[lender] = renters
-            for renter in renters:
-                if renter not in test.renter_lender_info:
-                    test.renter_lender_info[renter] = {lender: renters[renter]}
-                else:
-                    test.renter_lender_info[renter].update({lender: renters[renter]})
-    
-    test.active_set.clear()
-    
-    gevent.spawn_later(6, update_repack)
-
-
 #inter-action controller            
 test = node_controller(1)
 test.packages_reload()
 test.print_info()
-
-# The following code are used to test repack_update()    
-'''
-sim_list = ['float_operation']
-for action in sim_list:
-    test.action_repack(action, test.all_packages[action], True)
-    test.add_lender(action)
-print(test.repack_info)
-test.print_info()
-
-test.active_set.add('float_operation')
-update_repack()
-print(test.repack_info)
-test.print_info()
-'''
 
 # a Flask instance.
 proxy = Flask(__name__)
@@ -374,19 +312,34 @@ hostname = socket.gethostname()
 node_ip = socket.gethostbyname(hostname)
 node_port = 5000
 node_ip = node_ip + ':' + str(node_port)
-
 head_url = "http://0.0.0.0:5100"
 
-update_repack_cycle = 60
+update_repack_cycle = 60 * 30
 check_similarity_cycle = 60 * 30
 
-    
+'''
+# The following code are used to test repack_update()    
+sim_list = test.all_packages.keys()
+for action in sim_list:
+    test.action_repack(action, test.all_packages[action], True)
+    test.add_lender(action)
+print(test.repack_info)
+test.print_info()
+test.check_sim()
+#test.active_set.add('float_operation')
+#update_repack()
+print(test.repack_info)
+test.print_info()
+'''
+
 # listen user requests
 @proxy.route('/listen', methods=['POST'])
 def listen():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
     params = inp['params']
+    
+    test.active_set.add(action_name)
     
     global port_number_count
     global request_id_count
@@ -405,20 +358,17 @@ def listen():
 
     if need_init:
         test.image_base(action_name)
-        #print("need_init") 
         while True:
             try:
                 url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/init"
-                #print("init: ", url)
                 res = requests.post(url, json = {"action": action_name, "pwd": action_name, "QOS_time": 0.3, "QOS_requirement": 0.95, "min_port": container_port_number, "max_container": 10})
                 if res.text == 'OK':
                     break
             except Exception:
                 time.sleep(0.01)       
 
-    test.active_set.add(action_name)
-    print ("listen: ", request_id, " ", action_name)
-
+    print("listen:", request_id, action_name)
+    
     while True:
         try:
             url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/run"
@@ -512,7 +462,7 @@ def main():
     server.serve_forever()
 
 def check_similarity():
-    print("begin to check similarity")
+    print("############################### begin to check similarity")
     test.check_sim()
     gevent.spawn_later(check_similarity_cycle, check_similarity)
 
