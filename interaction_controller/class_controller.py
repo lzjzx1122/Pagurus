@@ -272,7 +272,7 @@ node_ip = socket.gethostbyname(hostname)
 node_port = 5000
 node_ip = node_ip + ':' + str(node_port)
 
-head_url = "0.0.0.0:5001"
+head_url = "http://0.0.0.0:5100"
 
 # listen user requests
 @proxy.route('/listen', methods=['POST'])

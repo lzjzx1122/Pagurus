@@ -95,7 +95,7 @@ class LoadBalancer:
     def send_request(self, server_node, action_name, params):
         url = self.server_list[server_node]
         action_data = {
-            "action": action_name,
+            "action_name": action_name,
             "params": params,
         }
         res = requests.post('http://' + url + '/listen', json=action_data)
@@ -216,7 +216,7 @@ def get_server_info(net_bandwidth):
     return ret
 
 
-load_balancer = LoadBalancer(['0.0.0.0:5001', '0.0.0.0:5002', '0.0.0.0:5003'])
+load_balancer = LoadBalancer(['0.0.0.0:5000'])#, '0.0.0.0:5002', '0.0.0.0:5003'])
 head = Flask(__name__)
 head.debug = False
 
@@ -225,7 +225,7 @@ head.debug = False
 def handle_action():
     action_data = request.get_json()
     ret = load_balancer.route(action_data['action'], action_data['params'])
-    return ret  # Response(status=200)
+    return ('OK', 200)  # Response(status=200)
 
 
 @head.route('/redirect', methods=["POST"])
@@ -268,7 +268,7 @@ def test2():
 
 
 if __name__ == '__main__':
-    server = WSGIServer('0.0.0.0:5000', head)
+    server = WSGIServer('0.0.0.0:5100', head)
     server.serve_forever()
     # head.run(host='0.0.0.0', port=5000)
     # load_balancer.update_load_info()

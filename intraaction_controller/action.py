@@ -138,6 +138,7 @@ class Action:
     # rent a container from interaction controller
     # if no container can be rented, return None
     def rent_container(self):
+        start_time = time.time()
         res = self.action_manager.rent(self.name)
         if res is None:
             return None
@@ -147,6 +148,7 @@ class Action:
         self.init_container(container)
         # self.put_container(container)
         # return True
+        print("!!!!!!!!!!!!!!!!!!!!!!!! rent latency:", time.time() - start_time)
         return container
 
     # create a new container
