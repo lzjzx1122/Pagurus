@@ -1,0 +1,7 @@
+zipp
+gevent
+docker-compose
+asyncio
+couchdb
+numpy
+flask

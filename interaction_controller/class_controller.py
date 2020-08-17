@@ -166,7 +166,7 @@ class node_controller():
 
         with open(save_path + 'Dockerfile', 'w') as f:       
             f.write('FROM pagurus_base\n')
-            f.write('FROM pip.conf /etc/pip.conf')
+            f.write('COPY pip.conf /etc/pip.conf\n')
             f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(action_name, action_name))
             if requirement_str != "":
                 f.write('RUN pip --no-cache-dir install{}'.format(requirement_str))  
@@ -204,7 +204,7 @@ class node_controller():
 
         with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM action_{}\n'.format(action_name))
-            f.write('FROM pip.conf /etc/pip.conf')
+            f.write('COPY pip.conf /etc/pip.conf\n')
             for renter in renters.keys():
                 f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(renter, renter))
             if requirement_str != "":
