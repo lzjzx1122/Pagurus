@@ -1,7 +1,7 @@
 import couchdb
 import sys
 
-couch = couchdb.Server('http://openwhisk:openwhisk@127.0.0.1:5984/')
+couch = couchdb.Server('http://127.0.0.1:5984/')
 db = couch['action_results']
 #r = int(sys.argv[1])
 for id in db:

@@ -166,10 +166,12 @@ class node_controller():
 
         with open(save_path + 'Dockerfile', 'w') as f:       
             f.write('FROM pagurus_base\n')
+            f.write('FROM pip.conf /etc/pip.conf')
             f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(action_name, action_name))
             if requirement_str != "":
                 f.write('RUN pip --no-cache-dir install{}'.format(requirement_str))  
-        
+       
+        os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         os.system('cd {} && cp ../../actions/{}.zip . && docker build --no-cache -t action_{} .'.format(save_path, action_name, action_name))
 
     def image_save(self, action_name, renters, requirements, repack_updating=False):  
@@ -202,11 +204,13 @@ class node_controller():
 
         with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM action_{}\n'.format(action_name))
+            f.write('FROM pip.conf /etc/pip.conf')
             for renter in renters.keys():
                 f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(renter, renter))
             if requirement_str != "":
                 f.write('RUN pip --no-cache-dir install{}'.format(requirement_str)) 
-        
+       
+        os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         for renter in renters.keys():
             os.system('cd {} && cp ../../actions/{}.zip .'.format(save_path, renter))
         os.system('cd {} && docker build --no-cache -t action_{}_repack .'.format(save_path, action_name))
