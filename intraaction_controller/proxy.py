@@ -20,7 +20,7 @@ server = None
 
 username = 'openwhisk'
 password = 'openwhisk'
-couchdb_url = f'http://127.0.0.1:5984/'
+couchdb_url = 'http://127.0.0.1:5984/'
 db_name = 'action_results'
 
 @proxy.route('/init', methods=['POST'])
