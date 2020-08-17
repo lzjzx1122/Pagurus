@@ -54,7 +54,6 @@ def repack():
 @proxy.route('/run', methods=['POST'])
 def run():
     data = request.get_json(force=True, silent=True)
-    #print('run: ', data['request_id'], ' ', data['data'])
     if action == None:
         return ('NO', 404)
     action.send_request(data['request_id'], data['data'])

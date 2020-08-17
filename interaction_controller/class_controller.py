@@ -314,7 +314,7 @@ node_port = 5000
 node_ip = node_ip + ':' + str(node_port)
 head_url = "http://0.0.0.0:5100"
 
-update_repack_cycle = 60 * 30
+update_repack_cycle = 60 * 3
 check_similarity_cycle = 60 * 30
 
 '''

@@ -39,25 +39,14 @@ def test3():
     print(i, " ", start, " ", end, " ", end - start)
 
     
+#test3()
+#test2()
 test()
 
-for _ in range(20):
-    gevent.spawn(test)
-    gevent.sleep(0.1)
-
-gevent.sleep(10)
-
 for _ in range(100):
+    #gevent.spawn(test3)
+    #gevent.spawn(test2)
     gevent.spawn(test)
-    gevent.sleep(5)
-
-#gevent.sleep(10)
-
-test2()
-
-for _ in range(20):
-    gevent.spawn(test2)
     gevent.sleep(0.1)
 
 gevent.wait()
-
