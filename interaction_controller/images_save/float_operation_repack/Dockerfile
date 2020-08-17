@@ -1,1 +1,0 @@
-FROM action_float_operation

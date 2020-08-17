@@ -218,7 +218,7 @@ def get_server_info(net_bandwidth):
     return ret
 
 
-load_balancer = LoadBalancer(['10.2.64.8:5000'])#, '0.0.0.0:5002', '0.0.0.0:5003'])
+load_balancer = LoadBalancer(['139.196.167.235:22', '106.15.225.213:22', '139.224.128.65:22'])
 head = Flask(__name__)
 head.debug = False
 
