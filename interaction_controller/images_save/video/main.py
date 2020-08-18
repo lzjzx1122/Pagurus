@@ -1,6 +1,5 @@
-import sys
-print(sys.path)
-import skvideo
+import skvideo.io
+import skvideo.datasets
 import numpy as np
 
 def main(param):

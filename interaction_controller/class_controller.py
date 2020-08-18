@@ -169,7 +169,7 @@ class node_controller():
             f.write('COPY pip.conf /etc/pip.conf\n')
             f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(action_name, action_name))
             if requirement_str != "":
-                f.write('RUN pip --no-cache-dir install{}'.format(requirement_str))  
+                f.write('RUN pip3 --no-cache-dir install{}'.format(requirement_str))  
        
         os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         os.system('cd {} && cp ../../actions/{}.zip . && docker build --no-cache -t action_{} .'.format(save_path, action_name, action_name))
@@ -208,7 +208,7 @@ class node_controller():
             for renter in renters.keys():
                 f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(renter, renter))
             if requirement_str != "":
-                f.write('RUN pip --no-cache-dir install{}'.format(requirement_str)) 
+                f.write('RUN pip3 --no-cache-dir install{}'.format(requirement_str)) 
        
         os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         for renter in renters.keys():
@@ -303,7 +303,7 @@ class node_controller():
     
 #inter-action controller            
 test = node_controller(1)
-test.packages_reload({'machine_learning', 'video'})
+test.packages_reload()
 test.print_info()
 
 # a Flask instance.
@@ -321,20 +321,11 @@ head_url = "http://0.0.0.0:5100"
 update_repack_cycle = 60 * 30
 check_similarity_cycle = 60 * 30
 
-
-# The following code are used to test repack_update()    
 '''
-sim_list = test.all_packages.keys()
-for action in sim_list:
-    test.action_repack(action, test.all_packages[action], True)
-    test.add_lender(action)
-print(test.repack_info)
-test.print_info()
-test.check_sim()
-#test.active_set.add('float_operation')
-#update_repack()
-print(test.repack_info)
-test.print_info()
+action_list = ['linpack', 'float_operation', 'video', 'matmul', 'k-means']
+for action in action_list:
+    print("action:", action)
+    test.image_base(action)
 '''
 
 # listen user requests

@@ -95,16 +95,13 @@ class Action:
         # 1.2 try to get a renter container from interaction controller
         rent_start = time.time()
         if container is None:
-            print("no self_container")
-        #    container = self.rent_container()
+            container = self.rent_container()
         rent_end = time.time()
         
         # 1.3 create a new container
         create_start = time.time()
         if container is None:
-            print("no rent_container")
             container = self.create_container()
-            print("create_container end")
         create_end = time.time()
 
         # the number of exec container hits limit
@@ -154,7 +151,6 @@ class Action:
         self.init_container(container)
         # self.put_container(container)
         # return True
-        print("!!!!!!!!!!!!!!!!!!!!!!!! rent latency:", time.time() - start_time)
         return container
 
     # create a new container
