@@ -95,13 +95,16 @@ class Action:
         # 1.2 try to get a renter container from interaction controller
         rent_start = time.time()
         if container is None:
-            container = self.rent_container()
+            print("no self_container")
+        #    container = self.rent_container()
         rent_end = time.time()
         
         # 1.3 create a new container
         create_start = time.time()
         if container is None:
+            print("no rent_container")
             container = self.create_container()
+            print("create_container end")
         create_end = time.time()
 
         # the number of exec container hits limit
@@ -113,12 +116,14 @@ class Action:
         req = self.rq.pop(0)
         self.num_processing -= 1
         # 2. send request to the container
+                
         res = container.send_request(req.data)
         res['queue_len'] = req.queue_len
         res['queue_time'] = process_start - req.arrival
         res['rent_time'] = rent_end - rent_start
         res['create_time'] = create_end - create_start
         req.result.set(res)
+        
         # 3. put the container back into pool
         self.put_container(container)
 

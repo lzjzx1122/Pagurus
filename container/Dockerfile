@@ -3,6 +3,10 @@
 # FROM python:3.7-alpine
 FROM python:3.7-slim
 
+RUN apt-get -y update && \
+    apt-get -y upgrade && \
+    apt-get -y install ffmpeg
+
 # fulfill the structure requirement of proxy
 RUN mkdir /proxy && \
     mkdir /proxy/exec && \

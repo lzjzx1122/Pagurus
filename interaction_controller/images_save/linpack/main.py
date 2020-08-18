@@ -5,7 +5,7 @@ def main(param):
     # LINPACK benchmarks
     n = param['param']
     ops = (2.0 * n) * n * n / 3.0 + (2.0 * n) * n
-
+    
     # Create AxA array of random numbers -0.5 to 0.5
     A = random.random_sample((n, n)) - 0.5
     B = A.sum(axis=1)
@@ -13,7 +13,7 @@ def main(param):
     # Convert to matrices
     A = matrix(A)
     B = matrix(B.reshape((n, 1)))
-
+    
     # Ax = B
     start = time()
     x = linalg.solve(A, B)
@@ -21,6 +21,6 @@ def main(param):
 
     mflops = (ops * 1e-6 / latency)
     print('latency :',latency)
-    return {"latency": latency}
+    return {"n": n, "latency": latency}
 
-main({'param':1000})
+#main({'param':1000})

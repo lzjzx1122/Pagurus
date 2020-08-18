@@ -219,8 +219,8 @@ class node_controller():
 
     def action_repack(self, action_name, packages, repack_updating=False, share_action_number=2):
         renters, requirements = self.get_renters(action_name, packages, share_action_number)
-        print("get_renters: ", renters, requirements)
-        self.image_save(action_name, renters, requirements, repack_updating)
+        #print("get_renters: ", renters, requirements)
+        #self.image_save(action_name, renters, requirements, repack_updating)
         self.repack_info[action_name] = renters        
         
         return renters
@@ -303,7 +303,7 @@ class node_controller():
     
 #inter-action controller            
 test = node_controller(1)
-test.packages_reload()
+test.packages_reload({'machine_learning', 'video'})
 test.print_info()
 
 # a Flask instance.
@@ -318,11 +318,12 @@ node_port = 5000
 node_ip = node_ip + ':' + str(node_port)
 head_url = "http://0.0.0.0:5100"
 
-update_repack_cycle = 60 * 3
+update_repack_cycle = 60 * 30
 check_similarity_cycle = 60 * 30
 
-'''
+
 # The following code are used to test repack_update()    
+'''
 sim_list = test.all_packages.keys()
 for action in sim_list:
     test.action_repack(action, test.all_packages[action], True)
@@ -361,7 +362,7 @@ def listen():
         container_port_number_count += 10
 
     if need_init:
-        test.image_base(action_name)
+        #test.image_base(action_name)
         while True:
             try:
                 url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/init"

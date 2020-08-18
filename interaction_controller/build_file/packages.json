@@ -1,4 +1,10 @@
-{"image":
+{"machine_learning":
+        {"numpy":"default",
+	"scipy":"default",
+        "joblib":"default",
+        "scikit-learn":"default"
+        }
+,"image":
 	{"pillow":"default"
 	}
 ,"network":

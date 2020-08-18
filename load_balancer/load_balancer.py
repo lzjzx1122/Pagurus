@@ -226,6 +226,8 @@ head.debug = False
 @head.route('/action', methods=["POST", "GET"])
 def handle_action():
     action_data = request.get_json()
+    print("receive data:", action_data['action'])
+    return ('OK', 200)
     ret = load_balancer.route(action_data['action'], action_data['params'])
     return ('OK', 200)  # Response(status=200)
 
