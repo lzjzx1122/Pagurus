@@ -25,6 +25,7 @@ class ActionRunner:
         # remove previous files in exec dir
         shutil.rmtree(exec_path)
         os.mkdir(exec_path)
+        os.chdir(exec_path)
 
         # extract the zipfile
         zipname = action_path + 'action_' + action + '.zip'
@@ -58,6 +59,7 @@ runner = ActionRunner()
 def status():
     res = {}
     res['status'] = proxy.status
+    res['workdir'] = os.getcwd()
     if runner.action:
         res['action'] = runner.action
     return res
