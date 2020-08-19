@@ -24,6 +24,7 @@ class node_controller():
         self.renter_lender_info = {} #{"renter A": {"lender B": cos, "lender C":cos}}
         self.lender_renter_info = {} #{"lender A": {"renter B": cos, "renter C":cos}}
         self.repack_info = {} #{"lender A": {"renter B": cos, "renter C":cos}}
+        self.repack_packages = {} #{"lender A": {"lib A":"ver A", "lib B": "ver B"}}
         self.action_info = {} #{"action_name": [port_number, process]}
         self.package_path = "build_file/packages.json"
         self.all_packages = {}
@@ -127,7 +128,7 @@ class node_controller():
             candidates.pop(renter)
         
         while len(all_packages) > 0 and share_action_number > 0:
-            renter = list(all_packages.keys())[random.random() % len(all_packages)] 
+            renter = list(all_packages.keys())[random.randrange(len(all_packages))] 
             if renter not in renters: 
                 flag = True
                 for (k, v) in all_packages[renter].items():
@@ -140,7 +141,6 @@ class node_controller():
                     renters.update({renter: 0})
                     share_action_number -= 1
             all_packages.pop(renter)
-            share_action_numnber -= 1
         return renters, requirements
 
     def check_image(self, requirements, file_path):
@@ -238,7 +238,7 @@ class node_controller():
         #print("get_renters: ", renters, requirements)
         self.image_save(action_name, renters, requirements, repack_updating)
         self.repack_info[action_name] = renters        
-        
+        self.repack_packages[action_name] = requirements 
         return renters
 
     def action_scheduler(self, action_name):
@@ -261,6 +261,7 @@ class node_controller():
 
     def lender_list(self):
         ret = []
+        '''
         with open('./build_file/packages.json','r') as fp:
             json_data = json.load(fp)
             for i in self.lender_renter_info:
@@ -268,12 +269,27 @@ class node_controller():
                 tmp['name'] = i
                 tmp['packages'] = json_data[i]
                 ret.append(tmp)
-        
+        '''
+        for lender in lender_renter_info:
+            tmp = {}
+            tmp['name'] = lender
+            tmp['packages'] = self.repack_packages[lender]
+            ret.append(tmp)
         return ret
 
     def check_sim(self):
         for i in list(self.renter_lender_info):
-            if len(self.renter_lender_info[i].values()) == 0 or max(self.renter_lender_info[i].values()) < 0.2:
+            if i in self.action_info:
+                url = "http://0.0.0.0:" + self.action_info[i][0] + "/status"
+                try:
+                    res = requests.get(url)
+                    res_dict = json.loads(res.text)
+                    if res_dict['exec'] + res_dict['lender'] + res_dict['renter'] > 0:
+                        continue
+                except Exception:
+                    pass
+            
+            if len(self.renter_lender_info[i].values()) == 0: #or max(self.renter_lender_info[i].values()) < 0.2:
                 action_delete_info = dict()
                 action_delete_info['name'] = i
                 with open('./build_file/packages.json','r') as fp:
@@ -369,7 +385,7 @@ def listen():
         container_port_number_count += 10
 
     if need_init:
-        test.image_base(action_name)
+       # test.image_base(action_name)
         while True:
             try:
                 url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/init"
