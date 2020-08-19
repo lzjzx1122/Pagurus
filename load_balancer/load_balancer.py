@@ -170,7 +170,7 @@ class LoadBalancer:
         return max_sim
 
     def redirect(self, server_node, action_data):
-        self.update_load_info()
+        #self.update_load_info()
         action_name = action_data['name']
         packages = action_data['packages']
         current_nodes = self.route_table[action_name]['route_nodes']

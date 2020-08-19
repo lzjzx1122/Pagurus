@@ -220,7 +220,7 @@ class node_controller():
     def action_repack(self, action_name, packages, repack_updating=False, share_action_number=2):
         renters, requirements = self.get_renters(action_name, packages, share_action_number)
         #print("get_renters: ", renters, requirements)
-        #self.image_save(action_name, renters, requirements, repack_updating)
+        self.image_save(action_name, renters, requirements, repack_updating)
         self.repack_info[action_name] = renters        
         
         return renters
@@ -344,6 +344,7 @@ def listen():
     request_id = request_id_count
     container_port_number = container_port_number_count
     need_init = False
+    print(test.action_info)
     if action_name not in test.action_info:
         need_init = True
         process = subprocess.Popen(['python3', '../intraaction_controller/proxy.py', str(port_number_count)])

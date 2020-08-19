@@ -41,7 +41,6 @@ class Container:
 
     # send a request to container and wait for result
     def send_request(self, data = {}):
-        print("!!!!!!!!!!!!!!!!! send run")
         r = requests.post(base_url.format(self.port, 'run'), json=data)
         self.lasttime = time.time()
         return r.json()
@@ -49,9 +48,7 @@ class Container:
     # initialize the container
     def init(self, action_name, pwd):
         data = { 'action': action_name, 'pwd': pwd}
-        print("!!!!!!!!!!!!!!!!! send init")
         r = requests.post(base_url.format(self.port, 'init'), json=data)
-        print("!!!!!!!!!!!!!!!!! init end")
         self.lasttime = time.time()
         return r.status_code == 200
 

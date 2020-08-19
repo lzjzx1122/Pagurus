@@ -17,7 +17,7 @@ def test():
     end = time.time()
     print(i, " ", start, " ", end, " ", end - start)
 
-for _ in range(100):
+for _ in range(10):
     gevent.spawn(test)
     gevent.sleep(0.1)
 
