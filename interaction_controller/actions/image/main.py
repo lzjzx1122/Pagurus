@@ -3,8 +3,8 @@ import os
 import time
 
 file_name = "test_image.png"
-image = Image.open("/action/image/"+file_name,"r")
-save_path = "/action/image/result/"
+image = Image.open("/proxy/exec/"+file_name,"r")
+save_path = "/proxy/exec/result/"
 
 #image = Image.open(file_name,"r")
 #save_path = "result/"
@@ -105,6 +105,8 @@ def image_processing(image,file_name):
     latency = time.time() - start
     return latency, path_list
 
-latency, path_list = image_processing(image,file_name)
-print(latency)
-print(path_list)
+def main(params):
+    latency, path_list = image_processing(image,file_name)
+    print(latency)
+    print(path_list)
+

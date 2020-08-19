@@ -125,6 +125,22 @@ class node_controller():
                 renters.update({renter: candidates[renter]})
                 share_action_number -= 1
             candidates.pop(renter)
+        
+        while len(all_packages) > 0 and share_action_number > 0:
+            renter = list(all_packages.keys())[random.random() % len(all_packages)] 
+            if renter not in renters: 
+                flag = True
+                for (k, v) in all_packages[renter].items():
+                    if (k in requirements) and (requirements[k] != v):
+                        flag = False
+                        break
+                if flag:
+                    for (k, v) in all_packages[renter].items():
+                        requirements.update({k: v}) 
+                    renters.update({renter: 0})
+                    share_action_number -= 1
+            all_packages.pop(renter)
+            share_action_numnber -= 1
         return renters, requirements
 
     def check_image(self, requirements, file_path):
@@ -344,7 +360,6 @@ def listen():
     request_id = request_id_count
     container_port_number = container_port_number_count
     need_init = False
-    print(test.action_info)
     if action_name not in test.action_info:
         need_init = True
         process = subprocess.Popen(['python3', '../intraaction_controller/proxy.py', str(port_number_count)])
@@ -354,7 +369,7 @@ def listen():
         container_port_number_count += 10
 
     if need_init:
-        #test.image_base(action_name)
+        test.image_base(action_name)
         while True:
             try:
                 url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/init"

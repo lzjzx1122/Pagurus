@@ -1,7 +1,7 @@
 import subprocess
 import time
 
-tmp = '/action/disk/tmp/'
+tmp = '/proxy/exec/tmp/'
 
 """
 dd - convert and copy a file

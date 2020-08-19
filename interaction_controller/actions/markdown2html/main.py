@@ -24,10 +24,11 @@ def md2html(mdstr):
     ret = markdown.markdown(mdstr,extensions=exts)
     return html % ret
 
+def main(params):
+    with open('/proxy/exec/example.md', 'r') as f:
+        text = f.read()
 
-with open('example.md', 'r') as f:
-    text = f.read()
+        print({"html_response": md2html(text)})
 
-    print({"html_response": md2html(text)})
+    print('latency:', time.time() - start)
 
-print('latency:', time.time() - start)
