@@ -284,6 +284,7 @@ class node_controller():
                 try:
                     res = requests.get(url)
                     res_dict = json.loads(res.text)
+                    print("container:", i, res_dict['exec'], res_dict['lender'], res_dict['renter'])
                     if res_dict['exec'] + res_dict['lender'] + res_dict['renter'] > 0:
                         continue
                 except Exception:
