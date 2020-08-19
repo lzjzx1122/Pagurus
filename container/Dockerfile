@@ -5,9 +5,11 @@ FROM python:3.7-slim
 
 COPY pip.conf /etc/pip.conf
 
-COPY sources.list /etc/apt/sources.list
+RUN apt-get -y update && \
+    apt-get -y upgrade && \
+    apt-get -y install gpg
 
-RUN apt-get -y install gpg
+COPY sources.list /etc/apt/sources.list
 
 RUN apt-key adv –keyserver keyserver.ubuntu.com –recv-keys 3B4FE6ACC0B21F32
 
@@ -36,5 +38,3 @@ EXPOSE 5000
 #     apk del .build-deps
 
 RUN pip install --no-cache-dir gevent flask
-
-CMD [ "python3", "/proxy/proxy.py" ]
