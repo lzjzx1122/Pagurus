@@ -127,6 +127,7 @@ class node_controller():
                 share_action_number -= 1
             candidates.pop(renter)
         
+        random.seed(0)
         while len(all_packages) > 0 and share_action_number > 0:
             renter = list(all_packages.keys())[random.randrange(len(all_packages))] 
             if renter not in renters: 
@@ -270,7 +271,7 @@ class node_controller():
                 tmp['packages'] = json_data[i]
                 ret.append(tmp)
         '''
-        for lender in lender_renter_info:
+        for lender in self.lender_renter_info:
             tmp = {}
             tmp['name'] = lender
             tmp['packages'] = self.repack_packages[lender]
@@ -280,12 +281,12 @@ class node_controller():
     def check_sim(self):
         for i in list(self.renter_lender_info):
             if i in self.action_info:
-                url = "http://0.0.0.0:" + self.action_info[i][0] + "/status"
+                url = "http://0.0.0.0:" + str(self.action_info[i][0]) + "/status"
                 try:
                     res = requests.get(url)
                     res_dict = json.loads(res.text)
-                    print("container:", i, res_dict['exec'], res_dict['lender'], res_dict['renter'])
-                    if res_dict['exec'] + res_dict['lender'] + res_dict['renter'] > 0:
+                    print("container:", i, res_dict['exec'][1], res_dict['lender'], res_dict['renter'])
+                    if res_dict['exec'][1] + res_dict['lender'] + res_dict['renter'] > 0:
                         continue
                 except Exception:
                     pass
@@ -352,7 +353,7 @@ node_ip = node_ip + ':' + str(node_port)
 head_url = "http://0.0.0.0:5100"
 
 update_repack_cycle = 60 * 30
-check_similarity_cycle = 60 * 30
+check_similarity_cycle = 60
 
 '''
 action_list = ['linpack', 'float_operation', 'video', 'matmul', 'k-means']

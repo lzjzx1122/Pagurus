@@ -115,6 +115,7 @@ class Action:
         # 2. send request to the container
                 
         res = container.send_request(req.data)
+        res['action_name'] = self.name
         res['queue_len'] = req.queue_len
         res['queue_time'] = process_start - req.arrival
         res['rent_time'] = rent_end - rent_start
