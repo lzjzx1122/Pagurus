@@ -4,12 +4,12 @@ import json
 
 class ActionManager:
     def __init__(self):
-        pass
+        self.url = 'http://172.23.164.202:5000'
     
     def rent(self, action_name):
         try:
             print("send rent: ", action_name)
-            res = requests.post("http://0.0.0.0:5000/rent", json = {"action_name": action_name})
+            res = requests.post(self.url + "/rent", json = {"action_name": action_name})
             if res.text == "no lender":
                 return None
             else:
@@ -22,7 +22,7 @@ class ActionManager:
         while True:
             try:
                 print("send create_pack_image: ", action_name)
-                res = requests.post("http://0.0.0.0:5000/repack_image", json = {"action_name": action_name})
+                res = requests.post(self.url + "/repack_image", json = {"action_name": action_name})
                 return res.text
                 break
             except Exception:
@@ -32,7 +32,7 @@ class ActionManager:
         print("send have_lender: ", action_name)
         while True:
             try:
-                res = requests.post("http://0.0.0.0:5000/have_lender", json = {"action_name": action_name})
+                res = requests.post(self.url + "/have_lender", json = {"action_name": action_name})
                 break
             except Exception:
                 time.sleep(0.01)
@@ -41,7 +41,7 @@ class ActionManager:
         print("send no_lender: ", action_name)
         while True:
             try:
-                res = requests.post("http://0.0.0.0:5000/no_lender", json = {"action_name": action_name})
+                res = requests.post(self.url + "/no_lender", json = {"action_name": action_name})
                 break
             except Exception:
                 time.sleep(0.01)

@@ -1,4 +1,0 @@
-pillow
-scipy
-numpy
-scikit-video
