@@ -8,8 +8,8 @@ def main(params):
         
     start = time.time()
 
-    couch = couchdb.Server("http://openwhisk:openwhisk@10.2.64.8:5984")
-    #couch = couchdb.Server("http://127.0.0.1:5984")
+    #couch = couchdb.Server("http://openwhisk:openwhisk@10.2.64.8:5984")
+    couch = couchdb.Server("http://172.23.164.206:5984")
 
     while True:
         try:

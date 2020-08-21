@@ -30,12 +30,11 @@ def test():
         elif count < count3:
                 gevent.spawn_later(t3, test)
         start = time.time()
-        url = "http://0.0.0.0:5000/listen"
-        res = requests.post(url, json = {"action_name":"map_reduce", "params": {}})
+        url = "http://172.23.164.206:5000/listen"
+        res = requests.post(url, json = {"action_name":"map_reduce", "params": {'name': '5mb'}})
         end = time.time()
         print(id, start, end, end - start)
 
-res = requests.post("http://0.0.0.0:5000/listen", json = {"action_name":"markdown2html", "params":{}})
 
 gevent.spawn(test)
 gevent.wait()
