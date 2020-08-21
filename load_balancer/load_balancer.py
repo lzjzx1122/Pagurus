@@ -18,6 +18,8 @@ def cal_similarity(action_packages, lender_packages):
         else:
             vector_a.append(0)
         vector_l.append(1)
+    if (np.linalg.norm(vector_a) * np.linalg.norm(vector_l)) < 0.01:	
+        return 0
     return np.dot(vector_a, vector_l) / (np.linalg.norm(vector_a) * np.linalg.norm(vector_l))
 
 
@@ -82,6 +84,7 @@ class LoadBalancer:
                     self.route_table.pop(action_name)
                     route_nodes = self.add_action(action_name)
         ret = Response(status=404)
+        print(route_nodes)
         for node in route_nodes:
             if self.check_server_threshold(node, 90):
                 ret = self.send_request(node, action_name, params)
@@ -160,7 +163,7 @@ class LoadBalancer:
             # lender_name = lender['name']
             lender_packages = lender['packages']
             conflict = False
-            for package, version in packages:
+            for (package, version) in packages.items():
                 if (package in list(lender_packages.keys())) and (version != lender_packages[package]):
                     conflict = True
             if conflict:
@@ -170,13 +173,15 @@ class LoadBalancer:
         return max_sim
 
     def redirect(self, server_node, action_data):
-        #self.update_load_info()
+        print("receive redirect:", server_node, action_data)
+        self.update_load_info()
         action_name = action_data['name']
         packages = action_data['packages']
         current_nodes = self.route_table[action_name]['route_nodes']
+        tmp_nodes = current_nodes.copy()
         self.route_table[action_name]['route_nodes'] = list(filter(lambda x: x != server_node, current_nodes))
         if len(self.route_table[action_name]['route_nodes']) == 0:  # no available nodes, update load and add action
-            self.update_load_info()
+            #self.update_load_info()
             self.route_table.pop(action_name)
             self.add_action(action_name)
         self.update_lender_info(self.route_table[action_name]['route_nodes'])
@@ -185,9 +190,17 @@ class LoadBalancer:
             sim = self.cal_server_similarity(packages, server_node)
             tmp_list.append((server_node, sim, self.load_info[server_node]['max']))
         tmp_list.sort(key=lambda el: (el[1], -el[2]), reverse=True)  # sort by similarity
-        if tmp_list[0][1] < 0.2:  # no match server, treat it as neutral stuffing
+        print ("tmp_list:", tmp_list)
+        if tmp_list[0][1] < 0.2:  
+            #print("refuse!!!")# no match server, treat it as neutral stuffing
+            #self.route_table[action_name]['route_nodes'] = tmp_nodes
+            #return Response(status=404)  
+       # else:     
             tmp_list.sort(key=lambda el: (el[2], -el[1]))  # sort by load, then by sim
         self.route_table[action_name]['route_nodes'] = list(map(lambda el: el[0], tmp_list))
+        
+        print("redirect_res:", self.route_table[action_name]['route_nodes'])
+        
         return Response(status=200)
 
 
@@ -218,7 +231,23 @@ def get_server_info(net_bandwidth):
     return ret
 
 
-load_balancer = LoadBalancer(['139.196.167.235:22', '106.15.225.213:22', '139.224.128.65:22'])
+#load_balancer = LoadBalancer(['172.23.164.208:5000']) #, '172.23.164.202:5000', '172.23.164.204:5000', '172.23.164.205:5000', '172.23.164.206:5000'])
+load_balancer = LoadBalancer(['172.23.164.202:5000', '172.23.164.203:5000', '172.23.164.204:5000', '172.23.164.206:5000', '172.23.164.208:5000'])
+action_list = ['disk', 'couchdb_test', 'image', 'linpack', 'markdown2html', 'matmul']
+
+load_balancer.route_table['video'] = {'hash_node':0, 'route_nodes':[0]}
+load_balancer.route_table['k-means'] = {'hash_node':1, 'route_nodes':[1]}
+load_balancer.route_table['network'] = {'hash_node':2, 'route_nodes':[2]}
+load_balancer.route_table['map_reduce'] = {'hash_node':3, 'route_nodes':[3]}
+load_balancer.route_table['float_operation'] = {'hash_node':4, 'route_nodes':[4]}
+for x in action_list:
+	load_balancer.route_table[x] = {'hash_node':0, 'route_nodes':[4, 0, 1, 2, 3]}
+'''
+load_balancer.route_table['video'] = {'hash_node':0, 'route_nodes':[0]}
+load_balancer.route_table['k-means'] = {'hash_node':1, 'route_nodes':[1]}
+for x in action_list:
+	load_balancer.route_table[x] = {'hash_node':0, 'route_nodes':[0, 1]}
+'''
 head = Flask(__name__)
 head.debug = False
 
@@ -227,7 +256,7 @@ head.debug = False
 def handle_action():
     action_data = request.get_json()
     print("receive data:", action_data['action'])
-    return ('OK', 200)
+    #return ('OK', 200)
     ret = load_balancer.route(action_data['action'], action_data['params'])
     return ('OK', 200)  # Response(status=200)
 
@@ -241,9 +270,9 @@ def handle_redirect():
         # print(server_addr, file=sys.stderr)
         return 404, 'server not found'
     action_data = data[server_addr][0]
-    print("redirect:", server_addr, action_data)
-    #load_balancer.redirect(server_node, action_data)
-    return ('OK', 200)
+    #print("redirect:", server_addr, action_data)
+    return load_balancer.redirect(server_node, action_data)
+    #return ('OK', 200)
 
 @head.route('/route-table', methods=['GET'])
 def route_table():
@@ -273,7 +302,7 @@ def test2():
 
 
 if __name__ == '__main__':
-    server = WSGIServer('0.0.0.0:5100', head)
+    server = WSGIServer('172.23.164.207:5000', head)
     server.serve_forever()
     # head.run(host='0.0.0.0', port=5000)
     # load_balancer.update_load_info()
