@@ -279,19 +279,19 @@ class node_controller():
         return ret
 
     def check_sim(self):
-        for i in list(self.renter_lender_info):
+        for i in list(self.action_info):
             if i in self.action_info:
                 url = "http://0.0.0.0:" + str(self.action_info[i][0]) + "/status"
                 try:
                     res = requests.get(url)
                     res_dict = json.loads(res.text)
-                    print("container:", i, res_dict['exec'][1], res_dict['lender'], res_dict['renter'])
-                    if res_dict['exec'][1] + res_dict['lender'] + res_dict['renter'] > 0:
+                    print("container:", i, res_dict['exec'], res_dict['lender'], res_dict['renter'])
+                    if res_dict['exec'][0] > 0 or res_dict['exec'][1] > 0 or  res_dict['lender'] > 0 or  res_dict['renter'] > 0: # + res_dict['lender'] + res_dict['renter'] > 0:
                         continue
                 except Exception:
                     pass
             
-            if len(self.renter_lender_info[i].values()) == 0: #or max(self.renter_lender_info[i].values()) < 0.2:
+            if i not in self.renter_lender_info or len(self.renter_lender_info[i].values()) == 0: #or max(self.renter_lender_info[i].values()) < 0.2:
                 action_delete_info = dict()
                 action_delete_info['name'] = i
                 with open('./build_file/packages.json','r') as fp:
@@ -299,17 +299,17 @@ class node_controller():
                     action_delete_info['packages'] = json_data[i]
                 tmp = [action_delete_info]
                 
-                while True:
-                    try:
-                        print("try:", head_url + '/redirect')
-                        res = requests.post(head_url + '/redirect', json={node_ip:tmp})
-                        if res.text == 'OK':  
-                           break
-                    except Exception as e:
-                        print("e:", e)
-                        time.sleep(0.01)
+                #while True:
+                try:
+                    print("try:", head_url + '/redirect')
+                    res = requests.post(head_url + '/redirect', json={node_ip:tmp})
+                    if res.text == 'OK':  
+                        break
+                except Exception as e:
+                    continue#print("e:", e)
+                        #time.sleep(0.01)
                 
-                url = 'http://0.0.0.0:' + str(test.action_info[action][0]) + '/end'
+                url = 'http://0.0.0.0:' + str(test.action_info[i][0]) + '/end'
                 while True:
                     try:
                         res = requests.post(url)
@@ -322,10 +322,11 @@ class node_controller():
                     for renter in self.lender_renter_info[i].keys():
                         self.renter_lender_info[renter].pop(i)
                     self.lender_renter_info.pop(i)    
-
-                for lender in self.renter_lender_info[i].keys():
-                    self.lender_renter_info[lender].pop(i)
-                self.renter_lender_info.pop(i)
+                
+                if i in self.renter_lender_info:   
+                    for lender in self.renter_lender_info[i].keys():
+                        self.lender_renter_info[lender].pop(i)
+                    self.renter_lender_info.pop(i)
                 
                 if i in self.active_set:
                     self.active_set.remove(i)
@@ -337,12 +338,12 @@ class node_controller():
     
 #inter-action controller            
 test = node_controller(1)
-test.packages_reload()
+test.packages_reload(['k-means', 'disk', 'couchdb_test', 'image', 'linpack', 'markdown2html', 'matmul'])
 test.print_info()
 
 # a Flask instance.
 proxy = Flask(__name__)
-container_port_number_count = 18081
+container_port_number_count = 18091
 port_number_count = 5001
 request_id_count = 0
 ############ add ip address ##############
@@ -350,10 +351,10 @@ hostname = socket.gethostname()
 node_ip = socket.gethostbyname(hostname)
 node_port = 5000
 node_ip = node_ip + ':' + str(node_port)
-head_url = "http://0.0.0.0:5100"
+head_url = "http://172.23.164.207:5000"
 
 update_repack_cycle = 60 * 30
-check_similarity_cycle = 60
+check_similarity_cycle = 20
 
 '''
 action_list = ['linpack', 'float_operation', 'video', 'matmul', 'k-means']
@@ -391,7 +392,7 @@ def listen():
         while True:
             try:
                 url = "http://0.0.0.0:" + str(test.action_info[action_name][0]) + "/init"
-                res = requests.post(url, json = {"action": action_name, "pwd": action_name, "QOS_time": 0.3, "QOS_requirement": 0.95, "min_port": container_port_number, "max_container": 10})
+                res = requests.post(url, json = {"action": action_name, "pwd": action_name, "QOS_time": 0.1, "QOS_requirement": 0.95, "min_port": container_port_number, "max_container": 10})
                 if res.text == 'OK':
                     break
             except Exception:
@@ -488,7 +489,7 @@ def lender_info():
     return (json.dumps(ret), 200)
 
 def main():
-    server = WSGIServer(('0.0.0.0', node_port), proxy)
+    server = WSGIServer(('172.23.164.203', node_port), proxy)
     server.serve_forever()
 
 def check_similarity():

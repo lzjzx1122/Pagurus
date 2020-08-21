@@ -30,7 +30,7 @@ def test():
         elif count < count3:
                 gevent.spawn_later(t3, test)
         start = time.time()
-        url = "http://0.0.0.0:5000/listen"
+        url = "http://172.23.164.203:5000/listen"
         res = requests.post(url, json = {"action_name":"k-means", "params": {}})
         end = time.time()
         print(id, start, end, end - start)
