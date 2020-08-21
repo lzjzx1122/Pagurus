@@ -35,7 +35,7 @@ def test():
         end = time.time()
         print(id, start, end, end - start)
 
-res = requests.post("http://0.0.0.0:5000/listen", json = {"action_name":"markdown2html", "params":{}})
+#res = requests.post("http://0.0.0.0:5000/listen", json = {"action_name":"markdown2html", "params":{}})
 
 gevent.spawn(test)
 gevent.wait()
