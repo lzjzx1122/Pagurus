@@ -1,5 +1,7 @@
 # Intra-action Controller
 
+# TODO: greatly changed!
+
 ## API
 proxy server runs at port 5000. it receives the following requests:
 - `/init`: POST request. do the init job.

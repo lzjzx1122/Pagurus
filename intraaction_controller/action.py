@@ -2,13 +2,70 @@ import docker
 import time
 import math
 import gevent
+import action_info
+import couchdb
 from container import Container
+from action_info import ActionInfo
 from idle_container_algorithm import idle_status_check
+from action_manager import ActionManager
+from port_manager import PortManager
 
 repack_clean_interval = 5.000 # repack and clean every 5 seconds
 dispatch_interval = 0.005 # 200 qps at most
 timer = None
 update_rate = 0.65 # the update rate of lambda and mu
+
+dispatch_thread = None
+repack_clean_thread = None
+all_action = {}
+
+# get action info from config file and do initial job
+# config_file is the filename of config file
+# port_range is a tuple containing the minimum and maximum available port
+# db_url and db_name is the url and name of couchdb database
+def init(config_file, port_range, db_url, db_name):
+    global dispatch_thread, repack_clean_thread, all_action
+    info_list = action_info.parse(config_file)
+
+    client = docker.from_env()
+    am = ActionManager()
+    pm = PortManager(*port_range)
+
+    db_server = couchdb.Server(db_url)
+    if db_name in db_server:
+        db = db_server[db_name]
+    else:
+        db = db_server.create(db_name)
+    
+    for info in info_list:
+        action = Action(client, db, info, pm, am)
+        all_action[info.action_name] = action
+
+    dispatch_thread = gevent.spawn_later(dispatch_interval, dispatch, all_action)
+    repack_clean_thread = gevent.spawn_later(repack_clean_interval, repack_clean, all_action)
+
+    return all_action
+
+def dispatch():
+    global dispatch_thread, all_action
+    dispatch_thread = gevent.spawn_later(dispatch_interval, dispatch)
+
+    for action in all_action.values():
+        action.dispatch_request()
+
+def repack_clean():
+    global repack_clean_thread, all_action
+    repack_clean_thread = gevent.spawn_later(repack_clean_interval, repack_clean)
+
+    for action in all_action.values():
+        action.repack_and_clean()
+
+# stop all the action
+# function returns when all requests are done
+def end():
+    for action in all_action.values():
+        action.end()
+    gevent.killall([dispatch_thread, repack_clean_thread])
 
 class RequestInfo:
     def __init__(self, request_id, data):
@@ -18,16 +75,17 @@ class RequestInfo:
         self.arrival = time.time()
 
 class Action:
-    def __init__(self, client, action_name, pwd, port_manager, action_manager, database, qos_time, qos_requirement, max_container):
+    def __init__(self, client, database, action_info, port_manager, action_manager):
         self.client = client
-        self.name = action_name
+        self.info = action_info
+        self.name = action_info.action_name
         self.port_manager = port_manager
         self.action_manager = action_manager
-        self.pwd = pwd
-        self.img_name = 'action_' + action_name
+        # self.pwd = pwd
+        self.img_name = action_info.img_name
         self.pack_img_name = None
         self.database = database
-        self.max_container = max_container
+        self.max_container = action_info.max_container
         
         self.num_processing = 0
         self.rq = []
@@ -39,16 +97,16 @@ class Action:
         self.renter_pool = []
 
         # start a timer for repack and clean
-        self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
-        self.dispatch = gevent.spawn_later(dispatch_interval, self.dispatch_request)
+        # self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
+        # self.dispatch = gevent.spawn_later(dispatch_interval, self.dispatch_request)
         self.working = set()
 
         # statistical infomation for idle container identifying
         self.lambd = -1
         self.rec_mu = -1
         self.qos_real = 1
-        self.qos_time = qos_time
-        self.qos_requirement = qos_requirement
+        self.qos_time = action_info.qos_time
+        self.qos_requirement = action_info.qos_requirement
         self.request_log = {
             'start': [time.time()],
             'duration': [],
@@ -80,7 +138,7 @@ class Action:
     #   4. other actions' lender container
     #   5. create new container
     def dispatch_request(self):
-        self.dispatch = gevent.spawn_later(dispatch_interval, self.dispatch_request)
+        # self.dispatch = gevent.spawn_later(dispatch_interval, self.dispatch_request)
 
         # no request to dispatch
         if len(self.rq) - self.num_processing == 0:
@@ -106,7 +164,6 @@ class Action:
 
         # the number of exec container hits limit
         if container is None:
-            tmp_time = time.time()
             self.num_processing -= 1
             return
 
@@ -142,7 +199,6 @@ class Action:
     # rent a container from interaction controller
     # if no container can be rented, return None
     def rent_container(self):
-        start_time = time.time()
         res = self.action_manager.rent(self.name)
         if res is None:
             return None
@@ -168,8 +224,6 @@ class Action:
 
         self.num_exec += 1
         self.init_container(container)
-        # self.put_container(container)
-        # return True
         return container
 
     # put the container into one of the three pool, according to its attribute
@@ -191,8 +245,6 @@ class Action:
         
         container = Container.create(self.client, self.pack_img_name, container.port, 'lender')
         self.init_container(container)
-        # self.put_container(container)
-        # return True
         return container
 
     # give out a lender container to interaction controller
@@ -218,6 +270,7 @@ class Action:
     # return the status of all container pools
     def pool_status(self):
         return {
+            "name": self.name,
             "exec": [self.num_exec, len(self.exec_pool)],
             "lender": len(self.lender_pool),
             "renter": len(self.renter_pool),
@@ -237,7 +290,7 @@ class Action:
 
     # do the action specific initialization work
     def init_container(self, container):
-        container.init(self.name, self.pwd)
+        container.init(self.name)
 
     # update stat info for idle alg
     def update_statistics(self):
@@ -269,7 +322,7 @@ class Action:
 
     # do the repack and cleaning work regularly
     def repack_and_clean(self):
-        self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
+        # self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
 
         # find the old containers
         old_container = []
@@ -304,7 +357,7 @@ class Action:
     
     # end action's life
     def end(self):
-        gevent.killall([self.repack_clean, self.dispatch])
+        # gevent.killall([self.repack_clean, self.dispatch])
         gevent.wait(self.working)
         for c in self.exec_pool + self.lender_pool + self.renter_pool:
             self.remove_container(c)

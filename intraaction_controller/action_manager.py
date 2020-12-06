@@ -1,6 +1,5 @@
 import requests
-import time
-import json
+import gevent
 
 class ActionManager:
     def __init__(self):
@@ -13,7 +12,7 @@ class ActionManager:
             if res.text == "no lender":
                 return None
             else:
-                res_dict = json.loads(res.text)
+                res_dict = res.json()
                 return res_dict['id'], res_dict['port']
         except Exception:
             return None  
@@ -24,9 +23,8 @@ class ActionManager:
                 print("send create_pack_image: ", action_name)
                 res = requests.post("http://0.0.0.0:5000/repack_image", json = {"action_name": action_name})
                 return res.text
-                break
             except Exception:
-                time.sleep(0.01)
+                gevent.sleep(0.01)
 
     def have_lender(self, action_name):
         print("send have_lender: ", action_name)
@@ -35,7 +33,7 @@ class ActionManager:
                 res = requests.post("http://0.0.0.0:5000/have_lender", json = {"action_name": action_name})
                 break
             except Exception:
-                time.sleep(0.01)
+                gevent.sleep(0.01)
 
     def no_lender(self, action_name):
         print("send no_lender: ", action_name)
@@ -44,4 +42,4 @@ class ActionManager:
                 res = requests.post("http://0.0.0.0:5000/no_lender", json = {"action_name": action_name})
                 break
             except Exception:
-                time.sleep(0.01)
+                gevent.sleep(0.01)

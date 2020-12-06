@@ -47,6 +47,7 @@ class Container:
 
     # initialize the container
     def init(self, action_name, pwd):
+        # TODO
         data = { 'action': action_name, 'pwd': pwd}
         r = requests.post(base_url.format(self.port, 'init'), json=data)
         self.lasttime = time.time()
