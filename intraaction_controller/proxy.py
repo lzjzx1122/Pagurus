@@ -5,6 +5,7 @@ import sys
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 import action
+import file_controller
 
 proxy = Flask(__name__)
 proxy.debug = False
@@ -52,6 +53,7 @@ def end():
 
 def main():
     global server
+    file_controller.init('actions/', '/var/run/pagurus/')
     action.init('action_config.yaml', (15000, 20000), couchdb_url, db_name)
     server = WSGIServer(('0.0.0.0', int(sys.argv[1])), proxy)
     server.serve_forever()

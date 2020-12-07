@@ -7,8 +7,7 @@ COPY pip.conf /etc/pip.conf
 
 # fulfill the structure requirement of proxy
 RUN mkdir /proxy && \
-    mkdir /proxy/exec && \
-    mkdir /proxy/actions
+    mkdir /proxy/exec
 
 # copy the proxy server
 COPY proxy.py /proxy/

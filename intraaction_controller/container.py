@@ -1,16 +1,26 @@
 import requests
 import docker
 import time
-from gevent import queue
 import gevent
+import file_controller
+from docker.types import Mount
 
 base_url = 'http://127.0.0.1:{}/{}'
+exec_dir = '/proxy/exec'
 
 class Container:
     # create a new container and return the wrapper
     @classmethod
     def create(cls, client, image_name, port, attr):
-        container = client.containers.run(image_name, detach=True, ports={'5000/tcp': str(port)})
+        path, dir_id = file_controller.create_dir()
+        mount = Mount(exec_dir, path, type='bind')
+        container = client.containers.run(image_name,
+                                          detach=True,
+                                          ports={'5000/tcp': str(port)},
+                                          labels=['pagurus'],
+                                          mounts=[mount])
+        file_controller.bind(dir_id, container.id)
+
         res = cls(container, port, attr)
         res.wait_start()
         return res
@@ -46,9 +56,9 @@ class Container:
         return r.json()
 
     # initialize the container
-    def init(self, action_name, pwd):
-        # TODO
-        data = { 'action': action_name, 'pwd': pwd}
+    def init(self, action_name):
+        file_controller.put_file_container(self.container.id, action_name)
+        data = { 'action': action_name }
         r = requests.post(base_url.format(self.port, 'init'), json=data)
         self.lasttime = time.time()
         return r.status_code == 200
@@ -56,4 +66,6 @@ class Container:
     # kill and remove the container
     def destroy(self):
         print("################################## destory: ", self.port)
+        container_id = self.container.id
         self.container.remove(force=True)
+        file_controller.destroy_container_dir(container_id)

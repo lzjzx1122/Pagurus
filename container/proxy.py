@@ -1,11 +1,8 @@
-import zipfile
-import shutil
 import os
 import time
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 
-action_path = '/proxy/actions/'
 exec_path = '/proxy/exec/'
 default_file = 'main.py'
 
@@ -17,23 +14,12 @@ class ActionRunner:
 
     def init(self, inp):
         action = inp['action']
-        pwd = inp['pwd']
 
         # update action status
         self.action = action
 
-        # remove previous files in exec dir
-        shutil.rmtree(exec_path)
-        os.mkdir(exec_path)
-        os.chdir(exec_path)
-
-        # extract the zipfile
-        zipname = action_path + 'action_' + action + '.zip'
-        with zipfile.ZipFile(zipname) as f:
-            f.extractall(exec_path, pwd=bytes(pwd, 'ascii'))
-
         # compile the python file first
-        filename = exec_path + default_file
+        filename = os.path.join(exec_path, default_file)
         with open(filename, 'r') as f:
             code = compile(f.read(), filename, mode='exec')
 

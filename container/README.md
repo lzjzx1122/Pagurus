@@ -1,8 +1,6 @@
 # proxy server in container
 
-## structure
-- `/proxy/actions/`: the zip files of actions
-- `/proxy/actions/action_ABC.zip`: encrypted zip file of action ABC
+## filesystem structure
 - `/proxy/exec/`: the dir where extracted files stay
 - `/proxy/exec/main.py`: the default main program of action
 - `/proxy/ActionRunner.py`: the proxy server
@@ -26,18 +24,12 @@ the meaning of each status:
 must send a json object in the following form:
 ```json
 {
-    "action": "test",
-    "pwd": "test"
+    "action": "test"
 }
 ```
 
 the meaning of each field:
-- action: the action name. it's used to find the filename of its zipfile.
-- pwd: the passphrase to extract its zipfile. it's not stored in container to keep security.
+- action: the action name. action's code should be placed first in directory `/proxy/exec`.
 
 ### run
 must send a json object. it will be used as the input of the action.
-
-## structure of action zipfile
-the action zipfile should contain a python file `main.py`, which will be executed when a request comes.
-the default entry point of `main.py` is `main()` function.
