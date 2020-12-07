@@ -1,35 +1,38 @@
 # Intra-action Controller
 
-# TODO: greatly changed!
+## Initialization
+when proxy server starts, it will do some initialization jobs:
+1. read the config file `action_config.yaml`
 
-## API
-proxy server runs at port 5000. it receives the following requests:
-- `/init`: POST request. do the init job.
-- `/repack`: POST request. tell the controller the pack image has been changed.
-- `/run`: POST request. return a json. send a user request to run the action.
-- `/lend`: GET request. return a json. get a lender container.
-- `/status`: GET request. return a json. get the status of controller.
-
-### init
-the request should contain a json object including the init auguments:
-```json
-{
-    "action": "linpack",
-    "pwd": "linpack",
-    "QOS_time": 0.3,
-    "QOS_requirement": 0.95,
-    "max_container": 10
-}
+config file should have the following form:
+```yaml
+max_container: 10
+actions:
+  - name: test_action1
+    image: test_img1
+    qos_time: 100
+    qos_requirement: 0.99
+  - name: test_action2
+    image: test_img2
+    qos_time: 200
+    qos_requirement: 0.95
 ```
 
 the meaning of each field:
-- `action`: the name of action, used in the image name
-- `pwd`: passphrase for decrypting action's zipfile
+- `action`: the name of action
+- `image`: the base image name for this action
 - `QOS_time`: the maximum time by QOS, in seconds
 - `QOS_requirement`: the precent of requests satisfying the QOS requirement
 - `max_container`: the maximum number of containers that this action's controller can create
 
-return `200 OK` if success
+## API
+proxy server runs at port 5000. it receives the following requests:
+- `/<action_name>/repack`: POST request. tell the controller the pack image has been changed.
+- `/<action_name>/run`: POST request. return a json. send a user request to run the action.
+- `/<action_name>/lend`: GET request. return a json. get a lender container.
+- `/<action_name>/status`: GET request. return a json. get the status of controller.
+
+`action_name` is the actual name of action being called. 
 
 ### repack
 inform intra-action controller that pack image has been changed. controller will removes all lender containers since they are uesless now.
@@ -96,6 +99,7 @@ get the current status of controller. nothing should be sent.
 it returns a json object:
 ```json
 {
+    "name": "actionname"
     "exec": 0,
     "lender": 0,
     "renter": 0,
@@ -106,6 +110,7 @@ it returns a json object:
 ```
 
 the meaning of each field:
+- `name`: the action name
 - `exec`: the number of exectant containers in pool
 - `lender`: the number of lender contaienrs in pool
 - `renter`: the number of renter containers in pool
