@@ -65,7 +65,6 @@ class Container:
 
     # kill and remove the container
     def destroy(self):
-        print("################################## destory: ", self.port)
         container_id = self.container.id
         self.container.remove(force=True)
         file_controller.destroy_container_dir(container_id)

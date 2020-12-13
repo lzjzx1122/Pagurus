@@ -19,7 +19,7 @@ class ActionRunner:
         self.action = action
 
         # compile the python file first
-        filename = os.path.join(exec_path, default_file)
+        filename = os.path.join(exec_path, action + '/' + default_file)
         with open(filename, 'r') as f:
             code = compile(f.read(), filename, mode='exec')
 

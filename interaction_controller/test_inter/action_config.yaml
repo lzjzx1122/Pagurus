@@ -1,0 +1,10 @@
+max_container: 10
+actions:
+  - name: linpack
+    image: action_linpack
+    qos_time: 100
+    qos_requirement: 0.99
+  - name: matmul
+    image: action_matmul
+    qos_time: 200
+    qos_requirement: 0.95

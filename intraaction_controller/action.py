@@ -41,8 +41,8 @@ def init(config_file, port_range, db_url, db_name):
         action = Action(client, db, info, pm, am)
         all_action[info.action_name] = action
 
-    dispatch_thread = gevent.spawn_later(dispatch_interval, dispatch, all_action)
-    repack_clean_thread = gevent.spawn_later(repack_clean_interval, repack_clean, all_action)
+    dispatch_thread = gevent.spawn_later(dispatch_interval, dispatch) #, all_action)
+    repack_clean_thread = gevent.spawn_later(repack_clean_interval, repack_clean) #, all_action)
 
     return all_action
 
