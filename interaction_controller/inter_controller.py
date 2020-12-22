@@ -22,9 +22,10 @@ class inter_controller():
         self.lender_renter_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
         self.repack_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
         self.repack_packages = {} #{'lender A': {'lib A':'ver A', 'lib B': 'ver B'}}
-        self.package_path = package_path
         self.all_packages = {}
         self.repacking = {} #{'action_name', True / False}
+        self.package_path = package_path
+        self.load_packages()
         
     def print_info(self):
         #print('----------------------------------------------------')
@@ -45,7 +46,7 @@ class inter_controller():
             print('')
         '''
 
-    def reload_packages(self):
+    def load_packages(self):
         all_packages = open(self.package_path, encoding='utf-8')
         all_packages_content = all_packages.read()
         self.all_packages = json.loads(all_packages_content)
@@ -68,69 +69,55 @@ class inter_controller():
             else:
                 self.renter_lender_info[k].update({lender: v})
 
-    def get_renters(self, action_name, packages, share_action_number=2):
+    def choose_renters(self, lender, share_action_number=5):
         all_packages = self.all_packages.copy()
-        all_packages.pop(action_name)
-        renters = {}
-        candidates = {}
-        requirements = {}
-        for (k1, v1) in packages.items():
-                for (k2, v2) in list(all_packages.items()):
-                    if (k1 in v2) and (v2[k1] != v1):
-                        all_packages.pop(k2)
-        packages_vector = []
-        vector_x, vector_y = [], []
-        for (k1,v1) in packages.items(): 
-            for (k2,v2) in all_packages.items():
-                if (k1 in v2) and (k2 not in candidates.keys()):
-                    candidates[k2] = 0
-                    packages_vector.extend(v2.keys())
-                    packages_vector = list(set(packages_vector))
-        #list all the packages that contain child set
-        for x in packages_vector:
-            if x in packages.keys():
-                vector_x.append(1)
-            else:
-                vector_x.append(0)
-        #calculate the vector_x
-        for candidate in candidates.keys():
-            for x in packages_vector:
-                if x in all_packages[candidate].keys():
-                    vector_y.append(1)
-                else:
-                    vector_y.append(0)    
-            candidates[candidate] = (np.dot(vector_x, vector_y) / (np.linalg.norm(vector_x) * np.linalg.norm(vector_y)))
-            vector_y = []
-        #calculate the vector_y and cos distance
-        while len(candidates) > 0 and share_action_number > 0:
-            renter = max(candidates, key = candidates.get)
-            flag = True
-            for (k, v) in all_packages[renter].items():
-                if (k in requirements) and (requirements[k] != v):
-                    flag = False
+        packages = all_packages.pop(lender)
+        sim = dict()
+        P = dict()
+        for (p, v) in packages.items():
+            P[p] = v
+        for (candidate, p_dict) in all_packages.items():
+            not_conflict = True
+            for (p, v) in P.items():
+                if (p in p_dict) and p_dict[p] != v:
+                    not_conflict = False
                     break
-            if flag:
-                for (k, v) in all_packages[renter].items():
-                    requirements.update({k: v}) 
-                renters.update({renter: candidates[renter]})
-                share_action_number -= 1
-            candidates.pop(renter)
+            if not_conflict:
+                sim[candidate] = None
+                for (p, v) in p_dict.items():
+                    if p not in P:
+                        P[p] = v
+
+        lender_vector = []
+        for p in P.keys():
+            if p in packages.keys():
+                lender_vector.append(1)
+            else:
+                lender_vector.append(0)
         
-        random.seed(0)
-        while len(all_packages) > 0 and share_action_number > 0:
-            renter = list(all_packages.keys())[random.randrange(len(all_packages))] 
-            if renter not in renters: 
-                flag = True
-                for (k, v) in all_packages[renter].items():
-                    if (k in requirements) and (requirements[k] != v):
-                        flag = False
-                        break
-                if flag:
-                    for (k, v) in all_packages[renter].items():
-                        requirements.update({k: v}) 
-                    renters.update({renter: 0})
-                    share_action_number -= 1
-            all_packages.pop(renter)
+        for candidate in sim.keys():
+            candidate_vector = []
+            for p in P.keys():
+                if p in all_packages[candidate].keys():
+                    candidate_vector.append(1)
+                else:
+                    candidate_vector.append(0)    
+            tmp = np.linalg.norm(lender_vector) * np.linalg.norm(candidate_vector)
+            if tmp == 0 :
+                sim[candidate] = 1
+            else:
+                sim[candidate] = np.dot(lender_vector, candidate_vector) / tmp
+        
+        renters = dict()
+        requirements = dict()
+        while len(sim) > 0 and share_action_number > 0:
+            renter = max(sim, key = sim.get)
+            for (p, v) in all_packages[renter].items():
+                requirements.update({p: v}) 
+                renters.update({renter: sim[renter]})
+                share_action_number -= 1
+            sim.pop(renter)
+        
         return renters, requirements
 
     def check_image(self, requirements, file_path):
@@ -157,34 +144,35 @@ class inter_controller():
         requirements = self.all_packages[action_name]
         
         save_path = 'images_save/' + action_name + '/'
-        file_path = save_path + 'requirements.txt'
+        # file_path = save_path + 'requirements.txt'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
-        file_write = open(file_path, 'w')
+        # file_write = open(file_path, 'w')
         requirement_str = ''
         for requirement in requirements:
-            file_write.writelines(requirement + '\n')
+            # file_write.writelines(requirement + '\n')
             requirement_str += ' ' + requirement
 
         with open(save_path + 'Dockerfile', 'w') as f:       
             f.write('FROM pagurus_base\n')
             # f.write('COPY pip.conf /etc/pip.conf\n')
-            f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(action_name, action_name))
+            # f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(action_name, action_name))
             if requirement_str != '':
                 f.write('RUN pip3 --no-cache-dir install{}'.format(requirement_str))  
        
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
-        os.system('cd {} && cp ../../actions/{}.zip . && docker build --no-cache -t action_{} .'.format(save_path, action_name, action_name))
+        # os.system('cd {} && cp ../../actions/{}.zip . && docker build --no-cache -t action_{} .'.format(save_path, action_name, action_name))
+        os.system('cd {} && docker build --no-cache -t action_{} .'.format(save_path, action_name, action_name))
 
     def generate_repacked_image(self, action_name, renters, requirements, repack_updating=False):  
         save_path = 'images_save/' + action_name + '_repack/'
-        file_path = save_path + 'requirements.txt'
+        # file_path = save_path + 'requirements.txt'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
-        if self.check_image(requirements, file_path):
-            return
+        # if self.check_image(requirements, file_path):
+        #    return
         
         self.remove_lender(action_name)
         
@@ -199,29 +187,29 @@ class inter_controller():
                     time.sleep(0.01)
         self.repacking[action_name] = True
         
-        file_write = open(file_path, 'w')
+        # file_write = open(file_path, 'w')
         requirement_str = ''
         for requirement in requirements:
-            file_write.writelines(requirement + '\n')
+            # file_write.writelines(requirement + '\n')
             requirement_str += ' ' + requirement
 
         with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM action_{}\n'.format(action_name))
-            f.write('COPY pip.conf /etc/pip.conf\n')
-            for renter in renters.keys():
-                f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(renter, renter))
+            # f.write('COPY pip.conf /etc/pip.conf\n')
+            # for renter in renters.keys():
+            #    f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(renter, renter))
             if requirement_str != '':
                 f.write('RUN pip3 --no-cache-dir install{}'.format(requirement_str)) 
        
-        os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
-        for renter in renters.keys():
-            os.system('cd {} && cp ../../actions/{}.zip .'.format(save_path, renter))
+        # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
+        # for renter in renters.keys():
+        #    os.system('cd {} && cp ../../actions/{}.zip .'.format(save_path, renter))
         os.system('cd {} && docker build --no-cache -t action_{}_repack .'.format(save_path, action_name))
         
         self.repacking[action_name] = False
 
-    def repack(self, action_name, packages, repack_updating=False, share_action_number=2):
-        renters, requirements = self.get_renters(action_name, packages, share_action_number)
+    def repack(self, action_name, repack_updating=False, share_action_number=5):
+        renters, requirements = self.choose_renters(action_name, share_action_number)
         #print('get_renters: ', renters, requirements)
         self.generate_repacked_image(action_name, renters, requirements, repack_updating)
         self.repack_info[action_name] = renters        
@@ -309,7 +297,9 @@ intra_url = 'http://0.0.0.0' + ':' + str(intra_port) + '/'
 head_url = 'http://0.0.0.0:5100'
 
 # An inter-controller instance.            
-controller = inter_controller(intra_url, 'build_file/test.json')
+controller = inter_controller(intra_url, 'build_file/packages.json')
+print(controller.choose_renters('linpack'))
+print(controller.choose_renters('video'))
 
 # a Flask instance.
 proxy = Flask(__name__)
@@ -358,7 +348,7 @@ def no_lender():
 def repack_image():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
-    controller.repack(action_name, controller.all_packages[action_name])
+    controller.repack(action_name)
     controller.print_info()
     return ('action_' + action_name + '_repack', 200)
 
@@ -413,9 +403,8 @@ def lender_info():
 
 def init():
     process = subprocess.Popen(['sudo', '/home/openwhisk/anaconda3/bin/python3', '../intraaction_controller/proxy.py', str(intra_port)])
-    controller.reload_packages()
-    # for action in controller.all_packages.keys():
-    #     controller.generate_base_image(action)
+    for action in controller.all_packages.keys():
+        controller.generate_base_image(action)
     controller.print_info()
     server = WSGIServer(('0.0.0.0', inter_port), proxy)
     server.serve_forever()
@@ -427,10 +416,10 @@ def check_similarity():
 
 def update_repack():
     print('############################### update_repack begin')
-    controller.reload_packages()
+    controller.load_packages()
     
     for lender in list(controller.repack_info.keys()):
-        controller.repack(lender, controller.all_packages[lender], True)
+        controller.repack(lender, True)
     
     controller.renter_lender_info.clear()
     for lender in list(controller.lender_renter_info.keys()):
@@ -445,7 +434,8 @@ def update_repack():
     gevent.spawn_later(update_repack_cycle, update_repack)
 
 if __name__ == '__main__':
-    init()
+    pass
+    # init()
     # gevent.spawn(init)
     # gevent.spawn_later(update_repack_cycle, update_repack)
     # gevent.spawn_later(check_similarity_cycle, check_similarity)

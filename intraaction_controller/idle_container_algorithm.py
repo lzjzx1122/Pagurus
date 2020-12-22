@@ -1,4 +1,5 @@
 import math
+import time
 import sys
 from math import factorial as fac
 
@@ -19,6 +20,9 @@ def Qos_value_algorithm(lambd, n, mu, Qos_time):
     if mu == 0 or n == 0:
         return 0
 
+    if lambd == -1:
+        return 0
+
     rou = lambd / (mu * n)
     nXrou = lambd / mu
 
@@ -32,7 +36,7 @@ def Qos_value_algorithm(lambd, n, mu, Qos_time):
     cal = 1 - pi_n / (1 - rou) * math.exp(e_index)
     return cal
     
-def idle_status_check(lambd, n, mu, Qos_time, Qos_value_cal, Qos_value_requirement):
+def idle_status_check(lambd, n, mu, Qos_time, Qos_value_cal, Qos_value_requirement, last_request_time):
     '''
     Qos_time: the Qos target time required by action
     Qos_value_requirement: the Qos required by action
@@ -43,10 +47,12 @@ def idle_status_check(lambd, n, mu, Qos_time, Qos_value_cal, Qos_value_requireme
     '''
 
     idle_sign = False
-    if Qos_value_cal > Qos_value_requirement and n > 1:
+    if n > 1 and Qos_value_cal > Qos_value_requirement:
         judge = Qos_value_algorithm(lambd, n - 1, mu, Qos_time)
         idle_sign = judge > Qos_value_requirement
         # if judge > Qos_value_requirement:
         #     idle_sign = True
         # else: idle_sign = False
+    else if time.time() - last_request_time > 60: 
+         idle_sign = True
     return idle_sign

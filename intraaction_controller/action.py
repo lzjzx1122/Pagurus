@@ -102,6 +102,7 @@ class Action:
         self.working = set()
 
         # statistical infomation for idle container identifying
+        self.last_requset_time = 0
         self.lambd = -1
         self.rec_mu = -1
         self.qos_real = 1
@@ -118,6 +119,7 @@ class Action:
         self.working.add(gevent.getcurrent())
         start = time.time()
         self.request_log['start'].append(start)
+        self.last_requset_time = start
 
         req = RequestInfo(request_id, data)
         req.queue_len = len(self.rq)
@@ -137,7 +139,7 @@ class Action:
     #   3. action's lender pool
     #   4. other actions' lender container
     #   5. create new container
-    def dispatch_request(self):
+     def dispatch_request(self):
         # self.dispatch = gevent.spawn_later(dispatch_interval, self.dispatch_request)
 
         # no request to dispatch
@@ -208,6 +210,7 @@ class Action:
         self.init_container(container)
         # self.put_container(container)
         # return True
+
         return container
 
     # create a new container
@@ -224,6 +227,16 @@ class Action:
 
         self.num_exec += 1
         self.init_container(container)
+        return container
+
+    def create_container_with_repacked_image(self):
+        try:
+            container = Container.create(self.client, self.pack_img_name, self.port_manager.get(), 'lender')
+        except Exception:
+            return None
+
+        self.init_container(container)
+        self.put_container(container)
         return container
 
     # put the container into one of the three pool, according to its attribute
@@ -256,6 +269,8 @@ class Action:
 
         # take the least hot lender container
         container = self.lender_pool.pop(0)
+
+        self.create_container_with_repacked_image()
 
         container_id = container.container.id
         port = container.port
@@ -336,7 +351,7 @@ class Action:
         repack_container = None
         if len(self.exec_pool) > 0:
             n = len(self.exec_pool) + len(self.lender_pool) + len(self.renter_pool)
-            idle_sign = idle_status_check(1/self.lambd, n-1, 1/self.rec_mu, self.qos_time, self.qos_real, self.qos_requirement)
+            idle_sign = idle_status_check(1/self.lambd, n-1, 1/self.rec_mu, self.qos_time, self.qos_real, self.qos_requirement, self.last_request_time)
             print("idle: ", idle_sign, " ", 1/self.lambd, " ", n-1, " ", 1/self.rec_mu, " ", self.qos_time, " ", self.qos_real, " ", self.qos_requirement)
             if idle_sign:
                 self.num_exec -= 1
