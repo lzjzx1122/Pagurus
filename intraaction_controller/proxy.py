@@ -2,6 +2,7 @@ from gevent import monkey
 monkey.patch_all()
 import docker
 import sys
+import json
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 import action
@@ -38,7 +39,7 @@ def lend(action_name):
     if res is None:
         return ('no lender', 403)
     else:
-        return {"id": res[0], "port": res[1]}
+        return (json.dumps({"id": res[0], "port": res[1]}), 200)
 
 @proxy.route('/<action_name>/status', methods=['GET'])
 def status(action_name):

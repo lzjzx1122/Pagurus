@@ -21,7 +21,7 @@ def main(params):
 
     # print("------------------------------------cwd-----------------------------------")
     # print(os.getcwd())
-    action_path = '/proxy/exec/actions'
+    action_path = '/proxy/exec/couchdb_test/actions'
     #action_path = 'actions' #os.path.join(os.getcwd(), 'actions')
     action_name_list = os.listdir(action_path)
 

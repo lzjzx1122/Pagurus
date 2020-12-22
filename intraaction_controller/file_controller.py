@@ -13,8 +13,9 @@ def init(action_dir, storage_dir):
     global _action_dir_base, _storage_dir
     _action_dir_base = action_dir
     _storage_dir = storage_dir
-    if not os.path.exists(_storage_dir):
-        os.mkdir(_storage_dir)
+    if os.path.exists(_storage_dir):
+       shutil.rmtree(_storage_dir)
+    os.mkdir(_storage_dir)
 
 # create a directory for new container
 # return container's directory

@@ -1,9 +1,28 @@
 # recommend not to use the alpine one, it lacks lots of dependencies
 # the slim one ocuppies about 2x space compared to alpine one
 # FROM python:3.7-alpine
+# FROM docker.io/valian/docker-python-opencv-ffmpeg:py3
 FROM python:3.7-slim
+# FROM docker.io/jrottenberg/ffmpeg:4.1-alpine
 
-# COPY pip.conf /etc/pip.conf
+COPY pip.conf /etc/pip.conf
+
+# RUN apt-get -y update && \
+#    apt-get -y upgrade
+
+# RUN apt-get -y install gpg
+
+# RUN apt-key adv –keyserver keyserver.ubuntu.com –recv-keys 3B4FE6ACC0B21F32
+
+# RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 40976EAF437D05B5
+# RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3B4FE6ACC0B21F32
+
+# COPY sources.list /etc/apt/sources.list
+
+RUN apt-get -y update && \
+    apt-get -y upgrade
+
+RUN apt-get -y install ffmpeg
 
 # fulfill the structure requirement of proxy
 RUN mkdir /proxy && \

@@ -1,8 +1,8 @@
-{"matmul":
-	{"numpy":"default"
+{
+    "video":
+	{"pillow":"default",
+	"scipy":"default",
+	"numpy":"default",
+	"scikit-video":"default"
 	}
-,
-"linpack":
-    {"numpy":"default"
-    }
 }

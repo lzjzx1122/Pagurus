@@ -3,8 +3,8 @@ import os
 import time
 
 file_name = "test_image.png"
-image = Image.open("/proxy/exec/"+file_name,"r")
-save_path = "/proxy/exec/result/"
+image = Image.open("/proxy/exec/image/"+file_name,"r")
+save_path = "/proxy/exec/image/result/"
 
 #image = Image.open(file_name,"r")
 #save_path = "result/"

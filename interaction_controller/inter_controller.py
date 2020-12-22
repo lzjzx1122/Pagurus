@@ -18,6 +18,7 @@ import socket
 class inter_controller():
     def __init__(self, intra_url, package_path):
         self.intra_url = intra_url
+        self.sharing_actions = 5
         self.renter_lender_info = {} #{'renter A': {'lender B': cos, 'lender C':cos}}
         self.lender_renter_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
         self.repack_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
@@ -69,7 +70,7 @@ class inter_controller():
             else:
                 self.renter_lender_info[k].update({lender: v})
 
-    def choose_renters(self, lender, share_action_number=5):
+    def choose_renters(self, lender):
         all_packages = self.all_packages.copy()
         packages = all_packages.pop(lender)
         sim = dict()
@@ -110,12 +111,13 @@ class inter_controller():
         
         renters = dict()
         requirements = dict()
-        while len(sim) > 0 and share_action_number > 0:
+        sharing_actions = self.sharing_actions
+        while len(sim) > 0 and sharing_actions > 0:
             renter = max(sim, key = sim.get)
             for (p, v) in all_packages[renter].items():
                 requirements.update({p: v}) 
                 renters.update({renter: sim[renter]})
-                share_action_number -= 1
+                sharing_actions -= 1
             sim.pop(renter)
         
         return renters, requirements
@@ -202,14 +204,15 @@ class inter_controller():
                 f.write('RUN pip3 --no-cache-dir install{}'.format(requirement_str)) 
        
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
+        # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         # for renter in renters.keys():
         #    os.system('cd {} && cp ../../actions/{}.zip .'.format(save_path, renter))
         os.system('cd {} && docker build --no-cache -t action_{}_repack .'.format(save_path, action_name))
         
         self.repacking[action_name] = False
 
-    def repack(self, action_name, repack_updating=False, share_action_number=5):
-        renters, requirements = self.choose_renters(action_name, share_action_number)
+    def repack(self, action_name, repack_updating=False):
+        renters, requirements = self.choose_renters(action_name)
         #print('get_renters: ', renters, requirements)
         self.generate_repacked_image(action_name, renters, requirements, repack_updating)
         self.repack_info[action_name] = renters        
@@ -220,13 +223,15 @@ class inter_controller():
         if action_name in self.renter_lender_info.keys() and len(self.renter_lender_info[action_name]) > 0:
             lender = max(self.renter_lender_info[action_name], key = self.renter_lender_info[action_name].get) 
             try:
-                res = requests.get(self.intra_url + action_name + '/lend')               
+                res = requests.get(self.intra_url + lender + '/lend')     
+                print('lender_url:', self.intra_url + lender + '/lend', res.text)          
                 if res.text == 'no lender':
                     return None
                 else:
                     res_dict = json.loads(res.text)
                     return lender, res_dict['id'], res_dict['port']
-            except Exception:
+            except Exception as e:
+                print('e:', e)
                 return None
         else:
             return None
@@ -298,8 +303,6 @@ head_url = 'http://0.0.0.0:5100'
 
 # An inter-controller instance.            
 controller = inter_controller(intra_url, 'build_file/packages.json')
-print(controller.choose_renters('linpack'))
-print(controller.choose_renters('video'))
 
 # a Flask instance.
 proxy = Flask(__name__)
@@ -403,9 +406,8 @@ def lender_info():
 
 def init():
     process = subprocess.Popen(['sudo', '/home/openwhisk/anaconda3/bin/python3', '../intraaction_controller/proxy.py', str(intra_port)])
-    for action in controller.all_packages.keys():
-        controller.generate_base_image(action)
-    controller.print_info()
+    # for action in controller.all_packages.keys():
+    #     controller.generate_base_image(action)
     server = WSGIServer(('0.0.0.0', inter_port), proxy)
     server.serve_forever()
 
@@ -434,8 +436,7 @@ def update_repack():
     gevent.spawn_later(update_repack_cycle, update_repack)
 
 if __name__ == '__main__':
-    pass
-    # init()
+    init()
     # gevent.spawn(init)
     # gevent.spawn_later(update_repack_cycle, update_repack)
     # gevent.spawn_later(check_similarity_cycle, check_similarity)

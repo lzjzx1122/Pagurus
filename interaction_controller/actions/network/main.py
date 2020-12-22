@@ -2,7 +2,7 @@ import requests
 import os,time
 
 def main(param):
-    file_name = param['name']
+    file_name = '/proxy/exec/network/' + param['name']
     #上传文件到服务器
     file = {'file': open(file_name,'rb')}
     start_time = time.time()
@@ -10,4 +10,3 @@ def main(param):
     latency = time.time()-start_time
     print('latency :',latency)
     return{"latency":latency}
-

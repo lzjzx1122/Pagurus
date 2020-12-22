@@ -45,7 +45,7 @@ def idle_status_check(lambd, n, mu, Qos_time, Qos_value_cal, Qos_value_requireme
     Return:
     idle_sign: marking whether the idle container exists  
     '''
-
+    print('idle time:', time.time(), last_request_time)
     idle_sign = False
     if n > 1 and Qos_value_cal > Qos_value_requirement:
         judge = Qos_value_algorithm(lambd, n - 1, mu, Qos_time)
@@ -53,6 +53,6 @@ def idle_status_check(lambd, n, mu, Qos_time, Qos_value_cal, Qos_value_requireme
         # if judge > Qos_value_requirement:
         #     idle_sign = True
         # else: idle_sign = False
-    else if time.time() - last_request_time > 60: 
+    elif last_request_time > 0 and time.time() - last_request_time > 20: 
          idle_sign = True
     return idle_sign

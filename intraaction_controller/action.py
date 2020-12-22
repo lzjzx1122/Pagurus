@@ -102,7 +102,7 @@ class Action:
         self.working = set()
 
         # statistical infomation for idle container identifying
-        self.last_requset_time = 0
+        self.last_request_time = -1
         self.lambd = -1
         self.rec_mu = -1
         self.qos_real = 1
@@ -119,8 +119,8 @@ class Action:
         self.working.add(gevent.getcurrent())
         start = time.time()
         self.request_log['start'].append(start)
-        self.last_requset_time = start
-
+        self.last_request_time = start
+        
         req = RequestInfo(request_id, data)
         req.queue_len = len(self.rq)
         self.rq.append(req)
@@ -139,7 +139,7 @@ class Action:
     #   3. action's lender pool
     #   4. other actions' lender container
     #   5. create new container
-     def dispatch_request(self):
+    def dispatch_request(self):
         # self.dispatch = gevent.spawn_later(dispatch_interval, self.dispatch_request)
 
         # no request to dispatch
@@ -152,6 +152,8 @@ class Action:
         # 1.1 try to get a workable container from pool
         container = self.self_container()
 
+        start_way = 'warm'
+
         # 1.2 try to get a renter container from interaction controller
         rent_start = time.time()
         if container is None:
@@ -161,6 +163,7 @@ class Action:
         # 1.3 create a new container
         create_start = time.time()
         if container is None:
+            start_way = 'cold'
             container = self.create_container()
         create_end = time.time()
 
@@ -174,6 +177,7 @@ class Action:
         # 2. send request to the container
                 
         res = container.send_request(req.data)
+        res['start_way'] = start_way
         res['action_name'] = self.name
         res['queue_len'] = req.queue_len
         res['queue_time'] = process_start - req.arrival
@@ -230,9 +234,11 @@ class Action:
         return container
 
     def create_container_with_repacked_image(self):
+        print('create_container_with_repacked_image')
         try:
             container = Container.create(self.client, self.pack_img_name, self.port_manager.get(), 'lender')
-        except Exception:
+        except Exception as e:
+            print('create error:', e)
             return None
 
         self.init_container(container)
@@ -270,12 +276,12 @@ class Action:
         # take the least hot lender container
         container = self.lender_pool.pop(0)
 
-        self.create_container_with_repacked_image()
+        gevent.spawn_later(1, self.create_container_with_repacked_image)
 
         container_id = container.container.id
         port = container.port
         return container_id, port
-
+        
     # after the destruction of container
     # its port should be give back to port manager
     def remove_container(self, container):
@@ -352,7 +358,7 @@ class Action:
         if len(self.exec_pool) > 0:
             n = len(self.exec_pool) + len(self.lender_pool) + len(self.renter_pool)
             idle_sign = idle_status_check(1/self.lambd, n-1, 1/self.rec_mu, self.qos_time, self.qos_real, self.qos_requirement, self.last_request_time)
-            print("idle: ", idle_sign, " ", 1/self.lambd, " ", n-1, " ", 1/self.rec_mu, " ", self.qos_time, " ", self.qos_real, " ", self.qos_requirement)
+            print("#idle: ", idle_sign, " ", 1/self.lambd, " ", n-1, " ", 1/self.rec_mu, " ", self.qos_time, " ", self.qos_real, " ", self.qos_requirement, self.last_request_time)
             if idle_sign:
                 self.num_exec -= 1
                 repack_container = self.exec_pool.pop(0)
@@ -381,9 +387,9 @@ def favg(a):
     return math.fsum(a) / len(a)
 
 # life time of three different kinds of containers
-exec_lifetime = 60
-lender_lifetime = 120
-renter_lifetime = 40
+exec_lifetime = 600
+lender_lifetime = 1200
+renter_lifetime = 400
 
 # the pool list is in order:
 # - at the tail is the hottest containers (most recently used)

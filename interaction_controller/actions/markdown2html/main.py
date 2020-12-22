@@ -25,7 +25,7 @@ def md2html(mdstr):
     return html % ret
 
 def main(params):
-    with open('/proxy/exec/example.md', 'r') as f:
+    with open('/proxy/exec/markdown2html/example.md', 'r') as f:
         text = f.read()
 
         print({"html_response": md2html(text)})
