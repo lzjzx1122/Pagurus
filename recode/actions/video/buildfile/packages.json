@@ -1,7 +1,0 @@
-{"video":
-	{"pillow":"default",
-	"scipy":"default",
-	"numpy":"default",
-	"scikit-video":"default"
-	}
-}
