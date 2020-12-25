@@ -1,6 +1,7 @@
 import docker
 import time
 import math
+import uuid
 import gevent
 import action_info
 import couchdb
@@ -37,8 +38,10 @@ def init(config_file, port_range, db_url, db_name):
     else:
         db = db_server.create(db_name)
     
+    db_lend = db_server.create('lend_info')
+
     for info in info_list:
-        action = Action(client, db, info, pm, am)
+        action = Action(client, db, db_lend, info, pm, am)
         all_action[info.action_name] = action
 
     dispatch_thread = gevent.spawn_later(dispatch_interval, dispatch) #, all_action)
@@ -75,7 +78,7 @@ class RequestInfo:
         self.arrival = time.time()
 
 class Action:
-    def __init__(self, client, database, action_info, port_manager, action_manager):
+    def __init__(self, client, database, db_lend, action_info, port_manager, action_manager):
         self.client = client
         self.info = action_info
         self.name = action_info.action_name
@@ -83,8 +86,9 @@ class Action:
         self.action_manager = action_manager
         # self.pwd = pwd
         self.img_name = action_info.img_name
-        self.pack_img_name = name + '_repack'
+        self.pack_img_name = self.img_name + '_repack'
         self.database = database
+        self.db_lend = db_lend
         self.max_container = action_info.max_container
         
         self.num_processing = 0
@@ -92,6 +96,7 @@ class Action:
 
         # container pool
         self.num_exec = 0
+        self.num_lender = 0
         self.exec_pool = []
         self.lender_pool = []
         self.renter_pool = []
@@ -153,11 +158,13 @@ class Action:
         container = self.self_container()
 
         start_way = 'warm'
+        container_way = 'queue'
 
         # 1.2 try to get a renter container from interaction controller
         rent_start = time.time()
         if container is None:
             container = self.rent_container()
+            container_way = 'rent'
         rent_end = time.time()
         
         # 1.3 create a new container
@@ -165,6 +172,7 @@ class Action:
         if container is None:
             start_way = 'cold'
             container = self.create_container()
+            container_way = 'create'
         create_end = time.time()
 
         # the number of exec container hits limit
@@ -183,6 +191,7 @@ class Action:
         res['queue_time'] = process_start - req.arrival
         res['rent_time'] = rent_end - rent_start
         res['create_time'] = create_end - create_start
+        res['container_way'] = container_way
         req.result.set(res)
         
         # 3. put the container back into pool
@@ -224,12 +233,13 @@ class Action:
         if self.num_exec > self.max_container:
             return None
         
+        self.num_exec += 1
+        
         try:
             container = Container.create(self.client, self.img_name, self.port_manager.get(), 'exec')
         except Exception:
             return None
 
-        self.num_exec += 1
         self.init_container(container)
         return container
 
@@ -241,6 +251,7 @@ class Action:
             print('create error:', e)
             return None
 
+        self.num_lender += 1
         self.init_container(container)
         self.put_container(container)
         return container
@@ -275,6 +286,7 @@ class Action:
 
         # take the least hot lender container
         container = self.lender_pool.pop(0)
+        self.num_lender -= 1
 
         gevent.spawn_later(1, self.create_container_with_repacked_image)
 
@@ -343,6 +355,8 @@ class Action:
 
     # do the repack and cleaning work regularly
     def repack_and_clean(self):
+        print('#####num_exec:', self.name, self.num_exec, len(self.exec_pool), self.max_container)
+        
         # self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
 
         # find the old containers
@@ -359,9 +373,12 @@ class Action:
             n = len(self.exec_pool) + len(self.lender_pool) + len(self.renter_pool)
             idle_sign = idle_status_check(1/self.lambd, n-1, 1/self.rec_mu, self.qos_time, self.qos_real, self.qos_requirement, self.last_request_time)
             print("#idle: ", idle_sign, " ", 1/self.lambd, " ", n-1, " ", 1/self.rec_mu, " ", self.qos_time, " ", self.qos_real, " ", self.qos_requirement, self.last_request_time)
-            if idle_sign:
+            if idle_sign and self.num_lender < self.max_container:
                 self.num_exec -= 1
+                self.num_lender += 1
                 repack_container = self.exec_pool.pop(0)
+                lend_log = {'time': time.time(), 'action': self.name, 'qos_target': self.qos_time, 'qos': self.qos_real, 'num_lender': self.num_lender}
+                self.db_lend[uuid.uuid4().hex] = lend_log 
 
         # time consuming work is put here
         for c in old_container:
@@ -387,9 +404,9 @@ def favg(a):
     return math.fsum(a) / len(a)
 
 # life time of three different kinds of containers
-exec_lifetime = 15
-lender_lifetime = 30
-renter_lifetime = 10
+exec_lifetime = 30
+lender_lifetime = 60
+renter_lifetime = 20
 
 # the pool list is in order:
 # - at the tail is the hottest containers (most recently used)

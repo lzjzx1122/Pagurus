@@ -1,8 +1,16 @@
 import csv
 import numpy as np
 import random
-import gevent
+import yaml
+import json
+import sys
 
+
+def qos_target(runtime):
+    return max(0.2, runtime * 1.5)
+
+
+# Read csv file.
 functions = []
 with open('function_durations_percentiles.anon.d07.csv', newline='') as csvfile:
     reader = csv.DictReader(csvfile)
@@ -14,6 +22,8 @@ with open('function_durations_percentiles.anon.d07.csv', newline='') as csvfile:
         maximum = float(row['Maximum'])
         functions.append({'function': function, 'aver': average, 'count': count, 'min': minimum, 'max': maximum})
 
+
+# Divide the whole range into 11 parts.
 total = len(functions)
 print('total_line:', total)
 M = total / 11
@@ -24,6 +34,15 @@ for i in range(10):
     R.append(L[i + 1] - 1)
 R.append(total - 1)
 
+
+# Shuffle the order of actions. 
+lender = "video"
+actions = ["image", "network", "float_operation", "disk", "linpack", "matmul", "map_reduce", "couchdb_test", "markdown2html", "k-means"]
+random.shuffle(actions)
+actions.append(lender)
+
+
+# Random in every range
 while True:
     selected_id = []
     selected_func = []
@@ -32,6 +51,7 @@ while True:
     selected_invo = [None] * 11
     for i in range(11):
         selected_id.append(random.randrange(L[i], R[i]))
+        # print(selected_id)
         selected_func.append(functions[selected_id[i]]['function'])
         selected_count.append(functions[selected_id[i]]['count'])
         selected_aver.append(functions[selected_id[i]]['aver'])
@@ -51,6 +71,7 @@ while True:
     if flag == True and sum(selected_invo[0]) < 100000:
         break
 
+
 '''
 for j in range(1440):
     for i in range(11):
@@ -58,20 +79,21 @@ for j in range(1440):
     print('')
 '''
 
+# Generate action_config.yaml for the intra-controller.
+actions_config = []
 for i in range(11):
-    if selected_invo[i] != None:
-        print('#{} id:{} function:{} average:{} count:{} invocation:{}'.format(i, selected_id[i], selected_func[i], selected_aver[i], selected_count[i], sum(selected_invo[i])))
+    name = actions[10 - i]
+    actions_config.append({'name': name, 'image': 'action_' + name, 'qos_time': qos_target(selected_aver[i] / 1000 / 60), 'qos_requirement': 0.95})
+action_config = {'max_container': 10, 'actions': actions_config}
+f = open('/home/openwhisk/gls/intraaction_controller/action_config.yaml', 'w', encoding = 'utf-8')
+yaml.dump(action_config, f)
 
-lender = "video"
-actions = ["image", "network", "float_operation", "disk", "linpack", "matmul", "map_reduce", "couchdb_test", "markdown2html", "k-means"]
-random.shuffle(actions)
-actions.append(lender)
 
-data = {}
+# Generate experiment set
+exper = []
 for i in range(11):
-    data[]
+    exper.append({'name': actions[10 - i], 'id': selected_id[i], 'runtime': selected_aver[i] / 1000 / 60,\
+        'func': selected_func[i], 'count': sum(selected_invo[i]), 'invo': selected_invo[i]})
+f = open(sys.argv[1], 'w', encoding = 'utf-8')
+json.dump(exper, f, sort_keys = False, indent = 4)
 
-def run(time_):
-    if time_ < 1440:
-        gevent.spawn_later(1, run, time_ + 1)
-    for i in range(11):

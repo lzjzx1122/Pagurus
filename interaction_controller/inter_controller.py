@@ -214,8 +214,8 @@ class inter_controller():
 
     def repack(self, action_name, repack_updating=False):
         renters, requirements = self.choose_renters(action_name)
-        #print('get_renters: ', renters, requirements)
-        self.generate_repacked_image(action_name, renters, requirements, repack_updating)
+        # print('get_renters: ', renters, requirements)
+        # self.generate_repacked_image(action_name, renters, requirements, repack_updating)
         self.repack_info[action_name] = renters        
         self.repack_packages[action_name] = requirements 
         return renters
@@ -417,8 +417,9 @@ def lender_info():
 def init():
     process = subprocess.Popen(['sudo', '/home/openwhisk/anaconda3/bin/python3', '../intraaction_controller/proxy.py', str(intra_port)])
     for action in controller.all_packages.keys():
-        controller.generate_base_image(action)
+        # controller.generate_base_image(action)
         controller.repack(action)
+    print(controller.repack_info)
     server = WSGIServer(('0.0.0.0', inter_port), proxy)
     server.serve_forever()
 

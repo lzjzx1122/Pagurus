@@ -55,7 +55,7 @@ def end():
 def main():
     global server
     file_controller.init('/home/openwhisk/gls/interaction_controller/actions/', '/var/run/pagurus/')
-    action.init('/home/openwhisk/gls/interaction_controller/test_inter/action_config.yaml', (15000, 20000), couchdb_url, db_name)
+    action.init('/home/openwhisk/gls/intraaction_controller/action_config.yaml', (15000, 20000), couchdb_url, db_name)
     server = WSGIServer(('0.0.0.0', int(sys.argv[1])), proxy)
     server.serve_forever()
 

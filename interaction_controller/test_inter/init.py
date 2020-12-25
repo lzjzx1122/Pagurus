@@ -2,6 +2,7 @@ import os
 
 os.system("curl -X DELETE http://openwhisk:openwhisk@127.0.0.1:5984/action_results")
 os.system("curl -X DELETE http://openwhisk:openwhisk@127.0.0.1:5984/inter_results")
+os.system("curl -X DELETE http://openwhisk:openwhisk@127.0.0.1:5984/lend_info")
 
 actions = ["image", "network", "video", "float_operation", "disk", "linpack", "matmul", "map_reduce", "couchdb_test", "markdown2html", "k-means"]
 
@@ -12,11 +13,10 @@ for action in actions:
     os.system('docker stop $(docker ps -a | grep \"' + 'action_' + action + '_repack' + '\" | awk \'{print $1}\')')
     os.system('docker rm $(docker ps -a | grep \"' + 'action_' + action + '_repack' + '\" | awk \'{print $1}\')')
 
-
 '''
-images = ['c8938e200a0b', '81b56c62fd8f', '8c0f7d83e74b']
+images = ['852d67449fc2', '77cbcfc2537c']
 for image in images:
     # print('docker stop $(docker ps -a | grep \"' + image + '\" | awk \'{print $1}\')')
     os.system('docker stop $(docker ps -a | grep \"' + image + '\" | awk \'{print $1}\')')
     os.system('docker rm $(docker ps -a | grep \"' + image + '\" | awk \'{print $1}\')')
-'''   
+'''

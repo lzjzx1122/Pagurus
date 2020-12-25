@@ -71,7 +71,7 @@ def run():
 
     process_ = Process(target=runner.run, args=[inp])
     process_.start()
-    process_.join(timeout=inp['timeout'] - 0.005)
+    process_.join(timeout=max(0, inp['timeout'] - 0.005))
     process_.terminate()
     
     # out = runner.run(inp)
