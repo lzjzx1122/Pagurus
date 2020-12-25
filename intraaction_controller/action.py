@@ -10,7 +10,7 @@ from idle_container_algorithm import idle_status_check
 from action_manager import ActionManager
 from port_manager import PortManager
 
-repack_clean_interval = 5.000 # repack and clean every 5 seconds
+repack_clean_interval = 2.000 # repack and clean every 5 seconds
 dispatch_interval = 0.005 # 200 qps at most
 timer = None
 update_rate = 0.65 # the update rate of lambda and mu
@@ -83,7 +83,7 @@ class Action:
         self.action_manager = action_manager
         # self.pwd = pwd
         self.img_name = action_info.img_name
-        self.pack_img_name = None
+        self.pack_img_name = name + '_repack'
         self.database = database
         self.max_container = action_info.max_container
         
@@ -387,9 +387,9 @@ def favg(a):
     return math.fsum(a) / len(a)
 
 # life time of three different kinds of containers
-exec_lifetime = 600
-lender_lifetime = 1200
-renter_lifetime = 400
+exec_lifetime = 15
+lender_lifetime = 30
+renter_lifetime = 10
 
 # the pool list is in order:
 # - at the tail is the hottest containers (most recently used)

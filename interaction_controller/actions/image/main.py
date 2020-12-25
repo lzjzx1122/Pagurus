@@ -106,7 +106,8 @@ def image_processing(image,file_name):
     return latency, path_list
 
 def main(params):
-    latency, path_list = image_processing(image,file_name)
+    for _ in range(100):
+        latency, path_list = image_processing(image,file_name)
     print(latency)
     print(path_list)
 

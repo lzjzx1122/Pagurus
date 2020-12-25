@@ -14,6 +14,7 @@ from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 import requests
 import socket
+import uuid
 
 class inter_controller():
     def __init__(self, intra_url, package_path):
@@ -307,9 +308,17 @@ controller = inter_controller(intra_url, 'build_file/packages.json')
 # a Flask instance.
 proxy = Flask(__name__)
 
+# database
+db_url = 'http://openwhisk:openwhisk@127.0.0.1:5984/'
+db_name = 'inter_results'
+db_server = couchdb.Server(db_url)
+if db_name in db_server:
+    db = db_server[db_name]
+else:
+    db = db_server.create(db_name)
+
 update_repack_cycle = 60 * 30
 check_similarity_cycle = 60
-request_id_count = 0
 
 # listen user requests
 @proxy.route('/listen', methods=['POST'])
@@ -317,10 +326,9 @@ def listen():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
     params = inp['params']
-    print('listen:', action_name, params)    
-    global request_id_count
-    request_id_count += 1
-    request_id = request_id_count
+    print('listen:', action_name, params)
+    start = time.time()    
+    request_id = uuid.uuid4().hex
     url = controller.intra_url + action_name + '/run'
     while True:
         try:
@@ -329,6 +337,8 @@ def listen():
                 break
         except Exception:
             time.sleep(0.01)       
+    end = time.time()
+    db[request_id] = {'start': start, 'end': end, 'end-to-end': end - start}
     return ('OK', 200)
 
 @proxy.route('/have_lender', methods=['POST'])
@@ -406,8 +416,9 @@ def lender_info():
 
 def init():
     process = subprocess.Popen(['sudo', '/home/openwhisk/anaconda3/bin/python3', '../intraaction_controller/proxy.py', str(intra_port)])
-    # for action in controller.all_packages.keys():
-    #     controller.generate_base_image(action)
+    for action in controller.all_packages.keys():
+        controller.generate_base_image(action)
+        controller.repack(action)
     server = WSGIServer(('0.0.0.0', inter_port), proxy)
     server.serve_forever()
 

@@ -13,7 +13,7 @@ def test():
     count += 1
     start = time.time()
     url = "http://0.0.0.0:5000/listen"
-    res = requests.post(url, json = {"action_name":"linpack", "params": {'param': 100}})
+    res = requests.post(url, json = {"action_name":"linpack", "params": {'timeout':0.1, 'param': 5000}})
     end = time.time()
     print(i, " ", start, " ", end, " ", end - start)
 

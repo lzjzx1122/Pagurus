@@ -1,3 +1,2 @@
 FROM pagurus_base
-COPY matmul.zip /proxy/actions/action_matmul.zip
 RUN pip3 --no-cache-dir install numpy

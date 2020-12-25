@@ -1,6 +1,7 @@
 import csv
 import numpy as np
 import random
+import gevent
 
 functions = []
 with open('function_durations_percentiles.anon.d07.csv', newline='') as csvfile:
@@ -50,12 +51,27 @@ while True:
     if flag == True and sum(selected_invo[0]) < 100000:
         break
 
+'''
 for j in range(1440):
     for i in range(11):
         print(selected_invo[i][j], end = ' ')
     print('')
-   
+'''
+
 for i in range(11):
     if selected_invo[i] != None:
         print('#{} id:{} function:{} average:{} count:{} invocation:{}'.format(i, selected_id[i], selected_func[i], selected_aver[i], selected_count[i], sum(selected_invo[i])))
 
+lender = "video"
+actions = ["image", "network", "float_operation", "disk", "linpack", "matmul", "map_reduce", "couchdb_test", "markdown2html", "k-means"]
+random.shuffle(actions)
+actions.append(lender)
+
+data = {}
+for i in range(11):
+    data[]
+
+def run(time_):
+    if time_ < 1440:
+        gevent.spawn_later(1, run, time_ + 1)
+    for i in range(11):

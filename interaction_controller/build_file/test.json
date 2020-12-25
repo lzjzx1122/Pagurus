@@ -1,4 +1,6 @@
-{
+{"linpack":
+	{"numpy":"default"
+	},
     "video":
 	{"pillow":"default",
 	"scipy":"default",

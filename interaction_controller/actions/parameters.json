@@ -1,0 +1,13 @@
+{   
+    "couchdb_test": {},
+    "disk": {"bs":8192, "count": 200000},
+    "float_operation": {"param": 1000000},
+    "image": {},
+    "k-means": {},
+    "linpack": {"param": 5000},
+    "map_reduce": {},
+    "markdown2html": {},
+    "matmul": {},
+    "network": {"name": "5mb"},
+    "video": {}
+}

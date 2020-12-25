@@ -2,6 +2,7 @@ import os
 import time
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
+from multiprocessing import Process
 
 exec_path = '/proxy/exec/'
 default_file = 'main.py'
@@ -63,18 +64,24 @@ def init():
 @proxy.route('/run', methods=['POST'])
 def run():
     proxy.status = 'run'
-
+    
     inp = request.get_json(force=True, silent=True)
     # record the execution time
     start = time.time()
-    out = runner.run(inp)
-    end = time.time()
 
+    process_ = Process(target=runner.run, args=[inp])
+    process_.start()
+    process_.join(timeout=inp['timeout'] - 0.005)
+    process_.terminate()
+    
+    # out = runner.run(inp)
+    end = time.time()
+    print('duration:', end - start)
     data = {
         "start_time": start,
         "end_time": end,
         "duration": end - start,
-        "result": out
+        # "result": out
     }
 
     proxy.status = 'ok'

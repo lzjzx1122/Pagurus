@@ -52,4 +52,3 @@ def main(params):
     couch.delete(dbname)
 
     print("Latency:", time.time() - start)
-
