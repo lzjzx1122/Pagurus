@@ -13,11 +13,11 @@ def test():
     count += 1
     start = time.time()
     url = "http://0.0.0.0:5000/listen"
-    res = requests.post(url, json = {"action_name":"linpack", "params": {'timeout':0.1, 'param': 5000}})
+    res = requests.post(url, json = {"action_name":"linpack", "params": {'timeout':10, 'param': 5000}})
     end = time.time()
     print(i, " ", start, " ", end, " ", end - start)
 
-for _ in range(2):
+for _ in range(1):
     gevent.spawn(test)
     gevent.sleep(0.1)
 

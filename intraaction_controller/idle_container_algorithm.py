@@ -53,7 +53,7 @@ def idle_status_check(lambd, n, mu, Qos_time, Qos_value_cal, Qos_value_requireme
         # if judge > Qos_value_requirement:
         #     idle_sign = True
         # else: idle_sign = False
-    elif last_request_time > 0 and time.time() - last_request_time > 5: 
+    if last_request_time > 0 and time.time() - last_request_time > 5: 
         # print('idle time:', time.time(), last_request_time)
         idle_sign = True
     return idle_sign

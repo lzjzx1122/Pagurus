@@ -9,24 +9,12 @@ import numpy as np
 from gevent.pywsgi import WSGIServer
 import sys
 
-
-def cal_similarity(action_packages, lender_packages):
-    vector_a, vector_l = [], []
-    for package in lender_packages.keys():
-        if package in action_packages.keys():
-            vector_a.append(1)
-        else:
-            vector_a.append(0)
-        vector_l.append(1)
-    return np.dot(vector_a, vector_l) / (np.linalg.norm(vector_a) * np.linalg.norm(vector_l))
-
-
 class LoadBalancer:
     def __init__(self, server_addr_list):
         # self.server_list = dict()  # {hash_key: server_addr}
         self.server_list = list()  # {server1, server2, ...}
         self.route_table = dict()  # {action_name: {hash_node: 1, route_nodes: [1, 3, 4]} } ps:node refer to the index of server in server_list
-        self.lender_list = dict()  # {node_index: [{name: lender1, packages: {}}, {name:lender2, packages: {}}] }
+        self.lender_list = dict()
         self.load_info = dict()  # {node_index: {cpu: xx%, mem: xx%, net: xx%, max: xx%}
         self.lender_list_lock = threading.Lock()  # lock for update lender_list
         self.load_info_lock = threading.Lock()  # lock for update server load status
@@ -74,19 +62,16 @@ class LoadBalancer:
             if len(table) == 0:  # the table is empty, handle it as a new action
                 # server = list(self.server_list.keys())[hash(action_name) % len(self.server_list.keys())]
                 # self.route_table.update({action_name: [server]})
-                self.route_table.pop(action_name)  # remove from route table
                 route_nodes = self.add_action(action_name)
             else:
                 route_nodes = table.get('route_nodes', [])
                 if len(route_nodes) == 0:  # no route node
-                    self.route_table.pop(action_name)
                     route_nodes = self.add_action(action_name)
         ret = Response(status=404)
         for node in route_nodes:
             if self.check_server_threshold(node, 90):
                 ret = self.send_request(node, action_name, params)
                 break
-
         return ret
 
 # action in route table?
@@ -123,105 +108,51 @@ class LoadBalancer:
         if server_node < 0 or server_node >= len(self.server_list):
             raise IndexError
         server = self.server_list[server_node]
-        lender_info = requests.get('http://' + server + '/lender-info')
-        print(lender_info.status_code)
-        if lender_info.ok:
-            # lenders = list(lender_info[server].values())
-            lender_info = lender_info.json()
-            print(lender_info)
+        res = requests.get('http://' + server + '/lender-info')
+        if res.ok:
+            res = res.json()
             self.lender_list_lock.acquire()
-            self.lender_list.update({server_node: lender_info[server]})
+            self.lender_list.update({res['node']: res['containers']})
             self.lender_list_lock.release()
 
     def update_load_info(self):
-        # lock = threading.Lock()
-        # sys_info = dict()  # {"hash_key: {cpu: xx%, mem: xx%, net: xx%}}
+        threads = []
         for server_node in range(len(self.server_list)):
-            thread = (threading.Thread(target=self.get_load_info(server_node)))
+            thread = threading.Thread(target=self.get_load_info(server_node))
+            threads.append(thread)
             thread.start()
+        for thread in threads:    
             thread.join()
-        print(self.load_info)
 
     def update_lender_info(self, server_nodes):
+        threads = []
         for server_node in server_nodes:
             thread = threading.Thread(target=self.get_lender_info(server_node))
+            threads.append(thread)
             thread.start()
+        for thread in threads:    
             thread.join()
-        print(self.lender_list)
 
-# get redirect action info, compute similarity of each node, if max > 20%
-# check node satisfy 70%, if ok, redirect, else subMax
-# else(max < 20%): check load info list, choose one that has lowest load
-
-    def cal_server_similarity(self, packages, server_node):
-        lenders = self.lender_list.get(server_node, {})
-        max_sim = 0
-        for lender in lenders:
-            # lender_name = lender['name']
-            lender_packages = lender['packages']
-            conflict = False
-            for package, version in packages:
-                if (package in list(lender_packages.keys())) and (version != lender_packages[package]):
-                    conflict = True
-            if conflict:
-                continue
-            sim = cal_similarity(packages, lender_packages)
-            max_sim = sim if max_sim < sim else max_sim
-        return max_sim
-
-    def redirect(self, server_node, action_data):
-        #self.update_load_info()
+    def redirect(self, server_node, action_name):
         action_name = action_data['name']
-        packages = action_data['packages']
         current_nodes = self.route_table[action_name]['route_nodes']
         self.route_table[action_name]['route_nodes'] = list(filter(lambda x: x != server_node, current_nodes))
-        if len(self.route_table[action_name]['route_nodes']) == 0:  # no available nodes, update load and add action
-            self.update_load_info()
-            self.route_table.pop(action_name)
-            self.add_action(action_name)
+        # if len(self.route_table[action_name]['route_nodes']) == 0:  # no available nodes, update load and add action
+        self.add_action(action_name)
         self.update_lender_info(self.route_table[action_name]['route_nodes'])
         tmp_list = []
         for server_node in self.route_table[action_name]['route_nodes']:
-            sim = self.cal_server_similarity(packages, server_node)
-            tmp_list.append((server_node, sim, self.load_info[server_node]['max']))
-        tmp_list.sort(key=lambda el: (el[1], -el[2]), reverse=True)  # sort by similarity
-        if tmp_list[0][1] < 0.2:  # no match server, treat it as neutral stuffing
-            tmp_list.sort(key=lambda el: (el[2], -el[1]))  # sort by load, then by sim
+            tmp_list.append((server_node, self.lender_list[server_node][action_name], self.load_info[server_node]['max']))
+        tmp_list.sort(key=lambda el: (el[1], -el[2]), reverse=True)  # sort by containers
+        if tmp_list[0][1] < 1:  # no match server, treat it as neutral stuffing
+            tmp_list.sort(key=lambda el: (el[2], -el[1]))  # sort by load
         self.route_table[action_name]['route_nodes'] = list(map(lambda el: el[0], tmp_list))
         return Response(status=200)
-
-
-def get_server_info(net_bandwidth):
-    cpu = subprocess.Popen(["sar", "-u", "1", "1"], stdout=subprocess.PIPE, encoding='UTF-8')
-    cpu_info = cpu.stdout.read()
-    cpu_load = 100.0 - float(list(filter(None, cpu_info[cpu_info.find("Average"):].split(' ')))[-1])
-
-    mem = subprocess.Popen(["sar", "-r", "1", "1"], stdout=subprocess.PIPE, encoding='UTF-8')
-    mem_info = mem.stdout.read()
-    mem_load = float(list(filter(None, mem_info[mem_info.find("Average"):].split(' ')))[4])
-
-    net = subprocess.Popen(["sar", "-n", "DEV", "1", "1"], stdout=subprocess.PIPE, encoding='UTF-8')
-    net_info = net.stdout.read()
-    net_load = list(filter(None, net_info.split('\n')))
-    net_load = list(filter(lambda x: x.find('Average') != -1 and x.find('IFACE') == -1, net_load))  # 如果是特定网口的话，
-    # and第二个条件为x.find(<name_of_port>) != -1
-    rxkB, txkB = 0, 0
-    for port in net_load:
-        rxkB += float(list(filter(None, port.split(' ')))[4])
-        txkB += float(list(filter(None, port.split(' ')))[5])
-
-    ret = dict()
-    ret['cpu'] = round(cpu_load, 2)
-    ret['mem'] = mem_load
-    ret['net'] = round((rxkB + txkB) / net_bandwidth * 100, 2)
-    # print ret
-    return ret
 
 
 load_balancer = LoadBalancer(['139.196.167.235:22', '106.15.225.213:22', '139.224.128.65:22'])
 head = Flask(__name__)
 head.debug = False
-
 
 @head.route('/action', methods=["POST", "GET"])
 def handle_action():
@@ -234,16 +165,16 @@ def handle_action():
 
 @head.route('/redirect', methods=["POST"])
 def handle_redirect():
-    data = request.get_json()
-    server_addr = list(data.keys())[0]
+    redirect_info = request.get_json()
+    server_addr = redirect_info['node']
     server_node = load_balancer.server_list.index(server_addr)
     if server_node == -1:
-        # print(server_addr, file=sys.stderr)
         return 404, 'server not found'
-    action_data = data[server_addr][0]
-    print("redirect:", server_addr, action_data)
-    #load_balancer.redirect(server_node, action_data)
+    action = redirect_info['action']
+    print("redirect:", server_addr, action)
+    load_balancer.redirect(server_node, action)
     return ('OK', 200)
+
 
 @head.route('/route-table', methods=['GET'])
 def route_table():
@@ -271,9 +202,19 @@ def test2():
     load_balancer.update_load_info()
     return Response(status=200)
 
-
-if __name__ == '__main__':
+def init():
     server = WSGIServer('0.0.0.0:5100', head)
     server.serve_forever()
     # head.run(host='0.0.0.0', port=5000)
     # load_balancer.update_load_info()
+
+update_load_cycle = 5
+def update_load():
+    load_balancer.update_load_info()
+    gevent.spawn_later(update_load_cycle, update_load)
+
+if __name__ == '__main__':
+    #init()
+    gevent.spawn(init)
+    gevent.spawn_later(update_load_cycle, update_load)
+    gevent.wait()    

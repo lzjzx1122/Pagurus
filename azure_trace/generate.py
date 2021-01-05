@@ -4,10 +4,11 @@ import random
 import yaml
 import json
 import sys
+import os
 
 
 def qos_target(runtime):
-    return max(0.2, runtime * 1.5)
+    return max(0.2, runtime * 2)
 
 
 # Read csv file.
@@ -36,8 +37,9 @@ R.append(total - 1)
 
 
 # Shuffle the order of actions. 
-lender = "video"
-actions = ["image", "network", "float_operation", "disk", "linpack", "matmul", "map_reduce", "couchdb_test", "markdown2html", "k-means"]
+lender = sys.argv[1]
+actions = ["linpack", "image", "network", "float_operation", "disk", "video", "matmul", "map_reduce", "couchdb_test", "markdown2html", "k-means"]
+actions.remove(lender)
 random.shuffle(actions)
 actions.append(lender)
 
@@ -55,6 +57,7 @@ while True:
         selected_func.append(functions[selected_id[i]]['function'])
         selected_count.append(functions[selected_id[i]]['count'])
         selected_aver.append(functions[selected_id[i]]['aver'])
+    flag = True
     with open('invocations_per_function_md.anon.d07.csv', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -64,11 +67,12 @@ while True:
                     for col in range(1, 1441):
                         tmp.append(int(row[str(col)]))
                     selected_invo[i] = tmp
-    flag = True
+                    if sum(tmp) > 100000:
+                        flag = False
     for i in range(11):
         if selected_invo[i] == None:
             flag = False
-    if flag == True and sum(selected_invo[0]) < 100000:
+    if flag == True:
         break
 
 
@@ -78,6 +82,7 @@ for j in range(1440):
         print(selected_invo[i][j], end = ' ')
     print('')
 '''
+os.system('mkdir ' + sys.argv[2])
 
 # Generate action_config.yaml for the intra-controller.
 actions_config = []
@@ -85,15 +90,19 @@ for i in range(11):
     name = actions[10 - i]
     actions_config.append({'name': name, 'image': 'action_' + name, 'qos_time': qos_target(selected_aver[i] / 1000 / 60), 'qos_requirement': 0.95})
 action_config = {'max_container': 10, 'actions': actions_config}
-f = open('/home/openwhisk/gls/intraaction_controller/action_config.yaml', 'w', encoding = 'utf-8')
+#f = open('/home/openwhisk/gls/intraaction_controller/action_config.yaml', 'w', encoding = 'utf-8')
+#yaml.dump(action_config, f)
+os.system('touch ' + sys.argv[2] + '/action_config.yaml')
+f = open(sys.argv[2] + '/action_config.yaml', 'w', encoding = 'utf-8')
 yaml.dump(action_config, f)
 
 
 # Generate experiment set
 exper = []
 for i in range(11):
-    exper.append({'name': actions[10 - i], 'id': selected_id[i], 'runtime': selected_aver[i] / 1000 / 60,\
+    exper.append({'name': actions[10 - i], 'id': selected_id[i], 'runtime': max(0.006, selected_aver[i] / 1000 / 60),\
         'func': selected_func[i], 'count': sum(selected_invo[i]), 'invo': selected_invo[i]})
-f = open(sys.argv[1], 'w', encoding = 'utf-8')
+os.system('touch ' + sys.argv[2] + '/set.json')
+f = open(sys.argv[2] + '/set.json', 'w', encoding = 'utf-8')
 json.dump(exper, f, sort_keys = False, indent = 4)
 

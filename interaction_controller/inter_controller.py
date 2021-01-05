@@ -25,9 +25,11 @@ class inter_controller():
         self.repack_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
         self.repack_packages = {} #{'lender A': {'lib A':'ver A', 'lib B': 'ver B'}}
         self.all_packages = {}
-        self.repacking = {} #{'action_name', True / False}
+        self.current_actions = {}
         self.package_path = package_path
         self.load_packages()
+        db_server = couchdb.Server('http://openwhisk:openwhisk@127.0.0.1:5984/')
+        self.db = db_server.create('renter_lender_info')
         
     def print_info(self):
         #print('----------------------------------------------------')
@@ -52,6 +54,8 @@ class inter_controller():
         all_packages = open(self.package_path, encoding='utf-8')
         all_packages_content = all_packages.read()
         self.all_packages = json.loads(all_packages_content)
+        for action in self.all_packages.keys():
+            self.current_actions[action] = True
         
     def remove_lender(self, lender):
         if lender in self.lender_renter_info:
@@ -60,9 +64,6 @@ class inter_controller():
             self.lender_renter_info.pop(lender)    
 
     def add_lender(self, lender):
-        while (lender in self.repacking) and (self.repacking[lender] == True):
-            gevent.sleep(0)
-
         renters = self.repack_info[lender]
         self.lender_renter_info[lender] = renters
         for (k, v) in renters.items():
@@ -73,6 +74,12 @@ class inter_controller():
 
     def choose_renters(self, lender):
         all_packages = self.all_packages.copy()
+        for action in all_packages.keys():
+            if self.current_actions[action] == False:
+                all_packages.pop(action)
+        tmp = list(all_packages.items())
+        random.shuffle(tmp)
+        all_packages = dict(tmp)
         packages = all_packages.pop(lender)
         sim = dict()
         P = dict()
@@ -118,43 +125,19 @@ class inter_controller():
             for (p, v) in all_packages[renter].items():
                 requirements.update({p: v}) 
                 renters.update({renter: sim[renter]})
-                sharing_actions -= 1
+            sharing_actions -= 1
             sim.pop(renter)
         
         return renters, requirements
 
-    def check_image(self, requirements, file_path):
-        if os.path.exists(file_path) == False:
-            return False
-        file_read = open(file_path, 'r').readlines()
-        if len(file_read) != len(requirements):
-            return False
-        for line in file_read:
-            l = line.replace('\n', '').replace('\r', '')
-            lib, version = None, None
-            if '==' in l:
-                l_split = l.split('==')
-                lib = l_split[0]
-                version = l_split[1]
-            else:
-                lib = l
-                version = 'default'
-            if (lib not in requirements) or (version != requirements[lib]):
-                return False
-        return True
-
     def generate_base_image(self, action_name):
         requirements = self.all_packages[action_name]
-        
         save_path = 'images_save/' + action_name + '/'
-        # file_path = save_path + 'requirements.txt'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
-        # file_write = open(file_path, 'w')
         requirement_str = ''
         for requirement in requirements:
-            # file_write.writelines(requirement + '\n')
             requirement_str += ' ' + requirement
 
         with open(save_path + 'Dockerfile', 'w') as f:       
@@ -170,16 +153,30 @@ class inter_controller():
 
     def generate_repacked_image(self, action_name, renters, requirements, repack_updating=False):  
         save_path = 'images_save/' + action_name + '_repack/'
-        # file_path = save_path + 'requirements.txt'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
-        # if self.check_image(requirements, file_path):
-        #    return
-        
         self.remove_lender(action_name)
         
+        requirement_str = ''
+        for requirement in requirements:
+            requirement_str += ' ' + requirement
+        
+        with open(save_path + 'Dockerfile', 'w') as f:
+            f.write('FROM action_{}\n'.format(action_name))
+            # f.write('COPY pip.conf /etc/pip.conf\n')
+            # for renter in renters.keys():
+            #    f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(renter, renter))
+            if requirement_str != '':
+                f.write('RUN pip3 --no-cache-dir install{}'.format(requirement_str)) 
+        # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
+        # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
+        # for renter in renters.keys():
+        #    os.system('cd {} && cp ../../actions/{}.zip .'.format(save_path, renter))
+        os.system('cd {} && docker build --no-cache -t action_{}_repack .'.format(save_path, action_name))
+
         if repack_updating == True:
+            self.remove_lender(action_name)
             while True:
                 try:
                     url = self.intra_url + action_name + '/repack'
@@ -188,47 +185,35 @@ class inter_controller():
                         break
                 except Exception:
                     time.sleep(0.01)
-        self.repacking[action_name] = True
         
-        # file_write = open(file_path, 'w')
-        requirement_str = ''
-        for requirement in requirements:
-            # file_write.writelines(requirement + '\n')
-            requirement_str += ' ' + requirement
-
-        with open(save_path + 'Dockerfile', 'w') as f:
-            f.write('FROM action_{}\n'.format(action_name))
-            # f.write('COPY pip.conf /etc/pip.conf\n')
-            # for renter in renters.keys():
-            #    f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(renter, renter))
-            if requirement_str != '':
-                f.write('RUN pip3 --no-cache-dir install{}'.format(requirement_str)) 
-       
-        # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
-        # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
-        # for renter in renters.keys():
-        #    os.system('cd {} && cp ../../actions/{}.zip .'.format(save_path, renter))
-        os.system('cd {} && docker build --no-cache -t action_{}_repack .'.format(save_path, action_name))
-        
-        self.repacking[action_name] = False
+    def requirements_changed(self, action_name, requirements):
+        if len(requirements) == len(self.repack_packages[action_name]):
+            for (p, v) in self.repack_packages[action_name].items():
+                if (p not in requirements.keys()) or requirements[p] != v:
+                    return True
+            return False
+        else:
+            return True
 
     def repack(self, action_name, repack_updating=False):
         renters, requirements = self.choose_renters(action_name)
+        # print('renters:', action_name, renters)
         # print('get_renters: ', renters, requirements)
-        # self.generate_repacked_image(action_name, renters, requirements, repack_updating)
+        if action_name not in self.repack_packages.keys() or self.requirements_changed(action_name, requirements):
+            self.generate_repacked_image(action_name, renters, requirements, repack_updating)
         self.repack_info[action_name] = renters        
         self.repack_packages[action_name] = requirements 
         return renters
 
-    def schedule_renter(self, action_name):
+    def schedule_lender(self, action_name):
         if action_name in self.renter_lender_info.keys() and len(self.renter_lender_info[action_name]) > 0:
             lender = max(self.renter_lender_info[action_name], key = self.renter_lender_info[action_name].get) 
             try:
                 res = requests.get(self.intra_url + lender + '/lend')     
-                print('lender_url:', self.intra_url + lender + '/lend', res.text)          
                 if res.text == 'no lender':
                     return None
                 else:
+                    self.db[uuid.uuid4().hex] = {'renter': action_name, 'lender': lender, 'time': time.time()}
                     res_dict = json.loads(res.text)
                     return lender, res_dict['id'], res_dict['port']
             except Exception as e:
@@ -238,61 +223,48 @@ class inter_controller():
             return None
 
     def get_lender_list(self):
-        ret = []
+        lender_containers = {}
         for lender in self.lender_renter_info:
-            tmp = {}
-            tmp['name'] = lender
-            tmp['packages'] = self.repack_packages[lender]
-            ret.append(tmp)
-        return ret
+            res = requests.get(self.intra_url + action + '/status')
+            status = json.loads(res.text)
+            lender_containers[lender] = status['lender']
+        renter_containers = {}
+        for renter in self.all_packages.keys():
+            renter_containers[renter] = 0
+            if renter in self.renter_lender_info:
+                for lender in self.renter_lender_info[renter]:
+                    if lender in lender_containers:
+                        renter_containers[renter] += lender_containers[lender]
+        return renter_containers
 
-    def check_sim(self):
-        for i in list(self.renter_lender_info):
-            try:
-                res = requests.get(self.intra_url + i + '/status')
-                res_dict = json.loads(res.text)
-                # print('container:', i, res_dict['exec'][1], res_dict['lender'], res_dict['renter'])
-                if res_dict['exec'][1] + res_dict['lender'] + res_dict['renter'] > 0:
-                    continue
-            except Exception:
-                pass
+    def check_redirect(self):
+        for action in self.current_actions.keys():
+            if self.current_actions[action] == False:
+                continue
+            res = requests.get(self.intra_url + action + '/status')
+            status = json.loads(res.text)
+            if status['exec'][0] + status['lender'] + status['renter'] > 0:
+                continue
             
-            if len(self.renter_lender_info[i].values()) == 0: 
-                action_delete_info = dict()
-                action_delete_info['name'] = i
-                action_delete_info['packages'] = self.all_packages[i]
-                tmp = [action_delete_info]
-                
-                while True:
-                    try:
-                        # print('try:', head_url + '/redirect')
-                        res = requests.post(head_url + '/redirect', json={inter_url:tmp})
-                        if res.text == 'OK':  
-                           break
-                    except Exception as e:
-                        print('e:', e)
-                        time.sleep(0.01)
-                '''
-                url = 'http://0.0.0.0:' + str(controller.action_info[action][0]) + '/end'
-                while True:
-                    try:
-                        res = requests.post(url)
-                        if res.text == 'OK':
-                            break
-                    except Exception:
-                        time.sleep(0.01)
-                '''
-                if i in self.lender_renter_info:
-                    for renter in self.lender_renter_info[i].keys():
-                        self.renter_lender_info[renter].pop(i)
-                    self.lender_renter_info.pop(i)    
+            if action not in self.renter_lender_info[action].keys() or len(self.renter_lender_info[action].keys()) == 0: 
+                redirect_info = {'node': inter_url, 'action': action}
+                try:
+                    res = requests.post(head_url + '/redirect', json=redirect_info)
+                    if res.text == 'OK':  
+                        self.current_actions[action] = False
+                except Exception as e:
+                    print('e:', e)
+                    
+            if action in self.lender_renter_info:
+                for renter in self.lender_renter_info[action].keys():
+                    self.renter_lender_info[renter].pop(action)
+                self.lender_renter_info.pop(action)    
 
-                for lender in self.renter_lender_info[i].keys():
-                    self.lender_renter_info[lender].pop(i)
-                self.renter_lender_info.pop(i)
-                
-                if i in self.repack_info:
-                    self.repack_info.pop(i)
+            if action in self.renter_lender_info:
+                for lender in self.renter_lender_info[action].keys():
+                    self.lender_renter_info[lender].pop(action)
+                self.renter_lender_info.pop(action)
+        
 
 # Ip config.
 inter_port = 5000
@@ -303,7 +275,7 @@ intra_url = 'http://0.0.0.0' + ':' + str(intra_port) + '/'
 head_url = 'http://0.0.0.0:5100'
 
 # An inter-controller instance.            
-controller = inter_controller(intra_url, 'build_file/packages.json')
+controller = inter_controller(intra_url, '/home/openwhisk/gls/interaction_controller/build_file/packages.json')
 
 # a Flask instance.
 proxy = Flask(__name__)
@@ -318,7 +290,7 @@ else:
     db = db_server.create(db_name)
 
 update_repack_cycle = 60 * 30
-check_similarity_cycle = 60
+check_redirect_cycle = 60
 
 # listen user requests
 @proxy.route('/listen', methods=['POST'])
@@ -326,7 +298,8 @@ def listen():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
     params = inp['params']
-    print('listen:', action_name, params)
+    self.current_actions[action_name] = True
+    # print('listen:', action_name, params)
     start = time.time()    
     request_id = uuid.uuid4().hex
     url = controller.intra_url + action_name + '/run'
@@ -369,7 +342,7 @@ def repack_image():
 def rent():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
-    res = controller.schedule_renter(action_name)
+    res = controller.schedule_lender(action_name)
     if res == None:
         print('rent: no lender')
         return ('no lender', 200)
@@ -410,46 +383,32 @@ def load_info():
 
 @proxy.route('/lender-info', methods=['GET']) # need to install sar
 def lender_info():
-    ret = dict()
-    ret[inter_url] = controller.get_lender_list()
-    return (json.dumps(ret), 200)
+    containers = controller.get_lender_list()
+    return (json.dumps({'node': inter_url, 'containers': containers}), 200)
 
 def init():
-    process = subprocess.Popen(['sudo', '/home/openwhisk/anaconda3/bin/python3', '../intraaction_controller/proxy.py', str(intra_port)])
     for action in controller.all_packages.keys():
         # controller.generate_base_image(action)
         controller.repack(action)
     print(controller.repack_info)
+    # process = subprocess.Popen(['sudo', '/home/openwhisk/anaconda3/bin/python3', '/home/openwhisk/gls/intraaction_controller/proxy.py', str(intra_port)])
     server = WSGIServer(('0.0.0.0', inter_port), proxy)
     server.serve_forever()
 
-def check_similarity():
-    print('############################### begin to check similarity')
-    controller.check_sim()
-    gevent.spawn_later(check_similarity_cycle, check_similarity)
+def check_redirect():
+    print('######### begin to check redirect.')
+    controller.check_redirect()
+    gevent.spawn_later(check_redirect_cycle, check_redirect)
 
 def update_repack():
-    print('############################### update_repack begin')
-    controller.load_packages()
-    
+    print('########## update_repack begin.')
     for lender in list(controller.repack_info.keys()):
-        controller.repack(lender, True)
-    
-    controller.renter_lender_info.clear()
-    for lender in list(controller.lender_renter_info.keys()):
-        renters = controller.repack_info[lender]
-        controller.lender_renter_info[lender] = renters
-        for renter in renters:
-            if renter not in controller.renter_lender_info:
-                controller.renter_lender_info[renter] = {lender: renters[renter]}
-            else:
-                controller.renter_lender_info[renter].update({lender: renters[renter]})
-    
+        controller.repack(lender, repack_updating=True)
     gevent.spawn_later(update_repack_cycle, update_repack)
 
 if __name__ == '__main__':
-    init()
-    # gevent.spawn(init)
-    # gevent.spawn_later(update_repack_cycle, update_repack)
-    # gevent.spawn_later(check_similarity_cycle, check_similarity)
-    # gevent.wait()    
+    #init()
+    gevent.spawn(init)
+    gevent.spawn_later(update_repack_cycle, update_repack)
+    gevent.spawn_later(check_redirect_cycle, check_redirect)
+    gevent.wait()    

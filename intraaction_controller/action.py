@@ -96,7 +96,6 @@ class Action:
 
         # container pool
         self.num_exec = 0
-        self.num_lender = 0
         self.exec_pool = []
         self.lender_pool = []
         self.renter_pool = []
@@ -192,6 +191,7 @@ class Action:
         res['rent_time'] = rent_end - rent_start
         res['create_time'] = create_end - create_start
         res['container_way'] = container_way
+        res['container_attr'] = container.attr
         req.result.set(res)
         
         # 3. put the container back into pool
@@ -244,16 +244,17 @@ class Action:
         return container
 
     def create_container_with_repacked_image(self):
-        print('create_container_with_repacked_image')
+        # print('create_container_with_repacked_image')
         try:
             container = Container.create(self.client, self.pack_img_name, self.port_manager.get(), 'lender')
         except Exception as e:
             print('create error:', e)
             return None
 
-        self.num_lender += 1
         self.init_container(container)
         self.put_container(container)
+        lend_log = {'time': time.time(), 'action': self.name, 'qos_target': self.qos_time, 'qos': self.qos_real, 'lender_pool': len(self.lender_pool), 'type': 'create'}
+        self.db_lend[uuid.uuid4().hex] = lend_log 
         return container
 
     # put the container into one of the three pool, according to its attribute
@@ -286,8 +287,7 @@ class Action:
 
         # take the least hot lender container
         container = self.lender_pool.pop(0)
-        self.num_lender -= 1
-
+        
         gevent.spawn_later(1, self.create_container_with_repacked_image)
 
         container_id = container.container.id
@@ -358,7 +358,19 @@ class Action:
         print('#####num_exec:', self.name, self.num_exec, len(self.exec_pool), self.max_container)
         
         # self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
-
+        
+        # repack containers
+        self.update_statistics()
+        repack_container = None
+        
+        if len(self.exec_pool) > 0:
+            n = len(self.exec_pool) + len(self.lender_pool) + len(self.renter_pool)
+            idle_sign = idle_status_check(1/self.lambd, n-1, 1/self.rec_mu, self.qos_time, self.qos_real, self.qos_requirement, self.last_request_time)
+            print("#idle: ", idle_sign, " ", 1/self.lambd, " ", n-1, " ", 1/self.rec_mu, " ", self.qos_time, " ", self.qos_real, " ", self.qos_requirement, self.last_request_time)
+            if idle_sign:
+                self.num_exec -= 1
+                repack_container = self.exec_pool.pop(0)
+          
         # find the old containers
         old_container = []
         self.exec_pool = clean_pool(self.exec_pool, exec_lifetime, old_container)
@@ -366,26 +378,14 @@ class Action:
         self.lender_pool = clean_pool(self.lender_pool, lender_lifetime, old_container)
         self.renter_pool = clean_pool(self.renter_pool, renter_lifetime, old_container)
 
-        # repack containers
-        self.update_statistics()
-        repack_container = None
-        if len(self.exec_pool) > 0:
-            n = len(self.exec_pool) + len(self.lender_pool) + len(self.renter_pool)
-            idle_sign = idle_status_check(1/self.lambd, n-1, 1/self.rec_mu, self.qos_time, self.qos_real, self.qos_requirement, self.last_request_time)
-            print("#idle: ", idle_sign, " ", 1/self.lambd, " ", n-1, " ", 1/self.rec_mu, " ", self.qos_time, " ", self.qos_real, " ", self.qos_requirement, self.last_request_time)
-            if idle_sign and self.num_lender < self.max_container:
-                self.num_exec -= 1
-                self.num_lender += 1
-                repack_container = self.exec_pool.pop(0)
-                lend_log = {'time': time.time(), 'action': self.name, 'qos_target': self.qos_time, 'qos': self.qos_real, 'num_lender': self.num_lender}
-                self.db_lend[uuid.uuid4().hex] = lend_log 
-
         # time consuming work is put here
         for c in old_container:
             self.remove_container(c)
         if repack_container is not None:
             repack_container = self.repack_container(repack_container)
             self.lender_pool.append(repack_container)
+            lend_log = {'time': time.time(), 'action': self.name, 'qos_target': self.qos_time, 'qos': self.qos_real, 'lender_pool': len(self.lender_pool), 'type': 'repack'}
+            self.db_lend[uuid.uuid4().hex] = lend_log
             
         if len(self.lender_pool) == 1:
             self.action_manager.have_lender(self.name)
