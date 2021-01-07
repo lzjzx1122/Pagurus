@@ -15,9 +15,11 @@ repack_clean_interval = 2.000 # repack and clean every 5 seconds
 dispatch_interval = 0.005 # 200 qps at most
 timer = None
 update_rate = 0.65 # the update rate of lambda and mu
+update_container_cycle = 1
 
 dispatch_thread = None
 repack_clean_thread = None
+update_container_thread = None
 all_action = {}
 
 # get action info from config file and do initial job
@@ -39,14 +41,15 @@ def init(config_file, port_range, db_url, db_name):
         db = db_server.create(db_name)
     
     db_lend = db_server.create('lend_info')
-
+    db_container = db_server.create('container')
     for info in info_list:
-        action = Action(client, db, db_lend, info, pm, am)
+        action = Action(client, db, db_lend, db_container, info, pm, am)
         all_action[info.action_name] = action
 
     dispatch_thread = gevent.spawn_later(dispatch_interval, dispatch) #, all_action)
     repack_clean_thread = gevent.spawn_later(repack_clean_interval, repack_clean) #, all_action)
-
+    gevent.spawn_later(update_container_cycle, update_container)
+    
     return all_action
 
 def dispatch():
@@ -63,6 +66,13 @@ def repack_clean():
     for action in all_action.values():
         action.repack_and_clean()
 
+def update_container():
+    global update_container_thread, all_action
+    update_container_thread = gevent.spawn_later(update_container_cycle, update_container)
+
+    for action in all_action.values():
+        action.update_container()
+
 # stop all the action
 # function returns when all requests are done
 def end():
@@ -78,7 +88,7 @@ class RequestInfo:
         self.arrival = time.time()
 
 class Action:
-    def __init__(self, client, database, db_lend, action_info, port_manager, action_manager):
+    def __init__(self, client, database, db_lend, db_container, action_info, port_manager, action_manager):
         self.client = client
         self.info = action_info
         self.name = action_info.action_name
@@ -89,6 +99,7 @@ class Action:
         self.pack_img_name = self.img_name + '_repack'
         self.database = database
         self.db_lend = db_lend
+        self.db_container = db_container
         self.max_container = action_info.max_container
         
         self.num_processing = 0
@@ -96,6 +107,8 @@ class Action:
 
         # container pool
         self.num_exec = 0
+        self.num_lender = 0
+        self.num_renter = 0
         self.exec_pool = []
         self.lender_pool = []
         self.renter_pool = []
@@ -118,6 +131,9 @@ class Action:
             'alltime': []
         }
     
+    def update_container(self):
+        self.db_container[uuid.uuid4().hex] = {'action': self.name, 'time': time.time(), 'exec': self.num_exec, 'lender': self.num_lender, 'renter': self.num_renter}
+        
     # put the request into request queue
     def send_request(self, request_id, data):
         self.working.add(gevent.getcurrent())
@@ -220,6 +236,7 @@ class Action:
         
         container_id, port = res
         container = Container.inherit(self.client, container_id, port, 'renter')
+        self.num_renter += 1
         self.init_container(container)
         # self.put_container(container)
         # return True
@@ -244,7 +261,6 @@ class Action:
         return container
 
     def create_container_with_repacked_image(self):
-        # print('create_container_with_repacked_image')
         try:
             container = Container.create(self.client, self.pack_img_name, self.port_manager.get(), 'lender')
         except Exception as e:
@@ -253,6 +269,7 @@ class Action:
 
         self.init_container(container)
         self.put_container(container)
+        self.num_lender += 1
         lend_log = {'time': time.time(), 'action': self.name, 'qos_target': self.qos_time, 'qos': self.qos_real, 'lender_pool': len(self.lender_pool), 'type': 'create'}
         self.db_lend[uuid.uuid4().hex] = lend_log 
         return container
@@ -289,7 +306,7 @@ class Action:
         container = self.lender_pool.pop(0)
         
         gevent.spawn_later(1, self.create_container_with_repacked_image)
-
+        self.num_lender -= 1
         container_id = container.container.id
         port = container.port
         return container_id, port
@@ -355,8 +372,7 @@ class Action:
 
     # do the repack and cleaning work regularly
     def repack_and_clean(self):
-        print('#####num_exec:', self.name, self.num_exec, len(self.exec_pool), self.max_container)
-        
+        print('## repack_clean',len(self.exec_pool), len(self.lender_pool))
         # self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
         
         # repack containers
@@ -370,20 +386,34 @@ class Action:
             if idle_sign:
                 self.num_exec -= 1
                 repack_container = self.exec_pool.pop(0)
-          
+       
         # find the old containers
         old_container = []
         self.exec_pool = clean_pool(self.exec_pool, exec_lifetime, old_container)
         self.num_exec -= len(old_container)
-        self.lender_pool = clean_pool(self.lender_pool, lender_lifetime, old_container)
-        self.renter_pool = clean_pool(self.renter_pool, renter_lifetime, old_container)
-
-        # time consuming work is put here
         for c in old_container:
             self.remove_container(c)
+
+        old_container = []
+        self.lender_pool = clean_pool(self.lender_pool, lender_lifetime, old_container)
+        self.num_lender -= len(old_container)
+        for c in old_container:
+            self.remove_container(c)
+        
+        old_container = []
+        self.renter_pool = clean_pool(self.renter_pool, renter_lifetime, old_container)
+        self.num_renter -= len(old_container)
+        for c in old_container:
+            self.remove_container(c)
+        
+        # time consuming work is put here
+        #for c in old_container:
+        #    self.remove_container(c)
+        
         if repack_container is not None:
             repack_container = self.repack_container(repack_container)
             self.lender_pool.append(repack_container)
+            self.num_lender += 1
             lend_log = {'time': time.time(), 'action': self.name, 'qos_target': self.qos_time, 'qos': self.qos_real, 'lender_pool': len(self.lender_pool), 'type': 'repack'}
             self.db_lend[uuid.uuid4().hex] = lend_log
             

@@ -30,7 +30,8 @@ for action in actions:
                 action_ = row['action']
                 if action_ not in containers.keys():
                     containers[action_] = {'repacked':0, 'lent':0}
-                containers[action_]['repacked'] += 1
+                if row['type'] == 'repack':
+                    containers[action_]['repacked'] += 1
         filename = 'results/' + action + '/' + str(id) + '/' + 'renter_lender_info.csv'
         with open(filename, newline='') as csvfile:
             reader = csv.DictReader(csvfile)

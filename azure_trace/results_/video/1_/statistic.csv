@@ -1,0 +1,12 @@
+action,cold,warm,create,rent,queue
+k-means,2,142,2,0,142
+markdown2html,14,1433,14,0,1433
+map_reduce,4,476,4,0,476
+network,3,285,3,0,285
+float_operation,24,22,24,0,22
+couchdb_test,1,0,1,0,0
+linpack,18,1,18,0,1
+image,2,0,2,0,0
+video,27,2782,27,0,2782
+disk,1,0,1,0,0
+matmul,1,0,1,0,0

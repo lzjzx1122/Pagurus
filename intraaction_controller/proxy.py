@@ -43,7 +43,7 @@ def lend(action_name):
 
 @proxy.route('/<action_name>/status', methods=['GET'])
 def status(action_name):
-    return action.all_action[action_name].pool_status()
+    return (json.dumps(action.all_action[action_name].pool_status()), 200)
 
 @proxy.route('/end', methods=['POST'])
 def end():

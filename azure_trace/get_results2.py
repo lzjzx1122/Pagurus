@@ -34,6 +34,7 @@ for lender in actions:
         dir = 'results/' + lender + '/' + str(i) + '/statistic.csv'
         total_cold = 0
         total_warm = 0
+        print(lender, ',', i, end=',')
         with open(dir, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
@@ -41,6 +42,8 @@ for lender in actions:
                 action = str(row['action'])
                 cold = int(row['cold'])
                 warm = int(row['warm'])
+                if action == 'markdown2html':
+                    print(cold, end = ',')
                 total_cold += cold
                 total_warm += warm 
                 renter_res_after[action] += cold
@@ -53,6 +56,8 @@ for lender in actions:
                 action = str(row['action'])
                 cold = int(row['cold'])
                 warm = int(row['warm'])
+                if action == 'markdown2html':
+                     print(cold, end = '\n')
                 total_cold_ += cold
                 total_warm_ += warm 
                 renter_res_before[action] += cold
@@ -76,5 +81,5 @@ with open(file_name, mode='w') as csv_file:
 print("---------------------------------------------")
 '''
 for action in actions:
-    print(action, ',', 1 - renter_res_after[action] / renter_res_before[action])
+    print(action, renter_res_before[action], renter_res_after[action], 1 - renter_res_after[action] / renter_res_before[action])
 

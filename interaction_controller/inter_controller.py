@@ -9,6 +9,7 @@ import queue
 import couchdb
 import random
 import json
+import psutil
 import numpy as np
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
@@ -25,9 +26,11 @@ class inter_controller():
         self.repack_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
         self.repack_packages = {} #{'lender A': {'lib A':'ver A', 'lib B': 'ver B'}}
         self.all_packages = {}
-        self.current_actions = {}
+        self.last_request = {}
         self.package_path = package_path
         self.load_packages()
+        self.update_repack_cycle = 60 * 30
+        self.check_redirect_cycle = 60
         db_server = couchdb.Server('http://openwhisk:openwhisk@127.0.0.1:5984/')
         self.db = db_server.create('renter_lender_info')
         
@@ -55,7 +58,7 @@ class inter_controller():
         all_packages_content = all_packages.read()
         self.all_packages = json.loads(all_packages_content)
         for action in self.all_packages.keys():
-            self.current_actions[action] = True
+            self.last_request[action] = 0
         
     def remove_lender(self, lender):
         if lender in self.lender_renter_info:
@@ -74,9 +77,6 @@ class inter_controller():
 
     def choose_renters(self, lender):
         all_packages = self.all_packages.copy()
-        for action in all_packages.keys():
-            if self.current_actions[action] == False:
-                all_packages.pop(action)
         tmp = list(all_packages.items())
         random.shuffle(tmp)
         all_packages = dict(tmp)
@@ -199,8 +199,8 @@ class inter_controller():
         renters, requirements = self.choose_renters(action_name)
         # print('renters:', action_name, renters)
         # print('get_renters: ', renters, requirements)
-        if action_name not in self.repack_packages.keys() or self.requirements_changed(action_name, requirements):
-            self.generate_repacked_image(action_name, renters, requirements, repack_updating)
+        # if action_name not in self.repack_packages.keys() or self.requirements_changed(action_name, requirements):
+        #    self.generate_repacked_image(action_name, renters, requirements, repack_updating)
         self.repack_info[action_name] = renters        
         self.repack_packages[action_name] = requirements 
         return renters
@@ -224,34 +224,31 @@ class inter_controller():
 
     def get_lender_list(self):
         lender_containers = {}
-        for lender in self.lender_renter_info:
+        containers = {}
+        for action in self.all_packages.keys():
             res = requests.get(self.intra_url + action + '/status')
             status = json.loads(res.text)
-            lender_containers[lender] = status['lender']
-        renter_containers = {}
+            lender_containers[action] = status['lender']
+            containers[action] = status['exec'][0]
         for renter in self.all_packages.keys():
-            renter_containers[renter] = 0
             if renter in self.renter_lender_info:
                 for lender in self.renter_lender_info[renter]:
-                    if lender in lender_containers:
-                        renter_containers[renter] += lender_containers[lender]
-        return renter_containers
+                    containers[renter] += lender_containers[lender]
+        return containers
 
     def check_redirect(self):
-        for action in self.current_actions.keys():
-            if self.current_actions[action] == False:
+        for action in self.all_packages.keys():
+            if self.last_request[action] < time.time() - self.check_redirect_cycle * 2:
                 continue
             res = requests.get(self.intra_url + action + '/status')
             status = json.loads(res.text)
             if status['exec'][0] + status['lender'] + status['renter'] > 0:
                 continue
             
-            if action not in self.renter_lender_info[action].keys() or len(self.renter_lender_info[action].keys()) == 0: 
+            if action not in self.renter_lender_info.keys() or len(self.renter_lender_info[action].keys()) == 0: 
                 redirect_info = {'node': inter_url, 'action': action}
                 try:
                     res = requests.post(head_url + '/redirect', json=redirect_info)
-                    if res.text == 'OK':  
-                        self.current_actions[action] = False
                 except Exception as e:
                     print('e:', e)
                     
@@ -269,7 +266,8 @@ class inter_controller():
 # Ip config.
 inter_port = 5000
 intra_port = 5001
-hostname = socket.gethostname()
+# hostname = socket.gethostname()
+hostname = '0.0.0.0'
 inter_url = socket.gethostbyname(hostname) + ':' + str(inter_port)
 intra_url = 'http://0.0.0.0' + ':' + str(intra_port) + '/'
 head_url = 'http://0.0.0.0:5100'
@@ -289,16 +287,13 @@ if db_name in db_server:
 else:
     db = db_server.create(db_name)
 
-update_repack_cycle = 60 * 30
-check_redirect_cycle = 60
-
 # listen user requests
 @proxy.route('/listen', methods=['POST'])
 def listen():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
     params = inp['params']
-    self.current_actions[action_name] = True
+    controller.last_request[action_name] = time.time()
     # print('listen:', action_name, params)
     start = time.time()    
     request_id = uuid.uuid4().hex
@@ -353,6 +348,7 @@ def rent():
 # communication with head 
 @proxy.route('/load-info', methods=['GET']) # need to install sar
 def load_info():
+    '''
     cpu = subprocess.Popen(['sar', '-u', '1', '1'], stdout=subprocess.PIPE, encoding='UTF-8')
     cpu_info = cpu.stdout.read()
     cpu_load = 100.0 - float(list(filter(None, cpu_info[cpu_info.find('Average'):].split(' ')))[-1])
@@ -361,6 +357,11 @@ def load_info():
     mem_info = mem.stdout.read()
     mem_load = float(list(filter(None, mem_info[mem_info.find('Average'):].split(' ')))[3])  
     # maybe need to change 3 to 4
+    '''
+    mem_info = psutil.virtual_memory()
+    mem_load = mem_info.used / mem_info.total * 100
+    
+    cpu_load = psutil.cpu_percent()
 
     net = subprocess.Popen(['sar', '-n', 'DEV', '1', '1'], stdout=subprocess.PIPE, encoding='UTF-8')
     net_info = net.stdout.read()
@@ -391,24 +392,24 @@ def init():
         # controller.generate_base_image(action)
         controller.repack(action)
     print(controller.repack_info)
-    # process = subprocess.Popen(['sudo', '/home/openwhisk/anaconda3/bin/python3', '/home/openwhisk/gls/intraaction_controller/proxy.py', str(intra_port)])
+    process = subprocess.Popen(['sudo', '/home/openwhisk/anaconda3/bin/python3', '/home/openwhisk/gls/intraaction_controller/proxy.py', str(intra_port)])
     server = WSGIServer(('0.0.0.0', inter_port), proxy)
     server.serve_forever()
 
 def check_redirect():
     print('######### begin to check redirect.')
     controller.check_redirect()
-    gevent.spawn_later(check_redirect_cycle, check_redirect)
+    gevent.spawn_later(controller.check_redirect_cycle, check_redirect)
 
 def update_repack():
     print('########## update_repack begin.')
     for lender in list(controller.repack_info.keys()):
         controller.repack(lender, repack_updating=True)
-    gevent.spawn_later(update_repack_cycle, update_repack)
+    gevent.spawn_later(controller.update_repack_cycle, update_repack)
 
 if __name__ == '__main__':
     #init()
     gevent.spawn(init)
-    gevent.spawn_later(update_repack_cycle, update_repack)
-    gevent.spawn_later(check_redirect_cycle, check_redirect)
+    # gevent.spawn_later(controller.update_repack_cycle, update_repack)
+    gevent.spawn_later(controller.check_redirect_cycle, check_redirect)
     gevent.wait()    

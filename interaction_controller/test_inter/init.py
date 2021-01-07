@@ -4,7 +4,7 @@ os.system("curl -X DELETE http://openwhisk:openwhisk@127.0.0.1:5984/action_resul
 os.system("curl -X DELETE http://openwhisk:openwhisk@127.0.0.1:5984/inter_results")
 os.system("curl -X DELETE http://openwhisk:openwhisk@127.0.0.1:5984/lend_info")
 os.system("curl -X DELETE http://openwhisk:openwhisk@127.0.0.1:5984/renter_lender_info")
-
+os.system("curl -X DELETE http://openwhisk:openwhisk@127.0.0.1:5984/container")
 
 actions = ["image", "network", "video", "float_operation", "disk", "linpack", "matmul", "map_reduce", "couchdb_test", "markdown2html", "k-means"]
 

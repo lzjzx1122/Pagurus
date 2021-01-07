@@ -28,11 +28,14 @@ for action in actions:
             reader = csv.DictReader(csvfile)
             for row in reader:
                 action_ = row['action']
+                if action_ == 'map_reduce':
+                    print(action, id, 'create:', int(row['create']), 'rent:', int(row['rent']))
                 if action_ not in containers.keys():
                     containers[action_] = {'total':0, 'rent':0}
                 containers[action_]['total'] += int(row['create']) + int(row['rent'])
                 containers[action_]['rent'] += int(row['rent'])
   
+'''
 file_name = 'results/results4.csv'
 with open(file_name, mode='w') as csv_file:
     fieldnames = ['action', 'rent', 'total', 'percentage']
@@ -43,3 +46,4 @@ with open(file_name, mode='w') as csv_file:
         total = containers[action]['total']
         row = {'action':action, 'rent':rent, 'total':total, 'percentage':rent/total}
         writer.writerow(row)
+'''
