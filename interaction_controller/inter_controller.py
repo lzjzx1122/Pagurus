@@ -388,11 +388,13 @@ def lender_info():
     return (json.dumps({'node': inter_url, 'containers': containers}), 200)
 
 def init():
+    '''
     for action in controller.all_packages.keys():
         # controller.generate_base_image(action)
         controller.repack(action)
     print(controller.repack_info)
-    process = subprocess.Popen(['sudo', '/home/openwhisk/anaconda3/bin/python3', '/home/openwhisk/gls/intraaction_controller/proxy.py', str(intra_port)])
+    '''
+    # process = subprocess.Popen(['sudo', '/home/openwhisk/anaconda3/bin/python3', '/home/openwhisk/gls/intraaction_controller/proxy.py', str(intra_port)])
     server = WSGIServer(('0.0.0.0', inter_port), proxy)
     server.serve_forever()
 
@@ -408,8 +410,8 @@ def update_repack():
     gevent.spawn_later(controller.update_repack_cycle, update_repack)
 
 if __name__ == '__main__':
-    #init()
-    gevent.spawn(init)
+    init()
+    # gevent.spawn(init)
     # gevent.spawn_later(controller.update_repack_cycle, update_repack)
-    gevent.spawn_later(controller.check_redirect_cycle, check_redirect)
-    gevent.wait()    
+    # gevent.spawn_later(controller.check_redirect_cycle, check_redirect)
+    # gevent.wait()    

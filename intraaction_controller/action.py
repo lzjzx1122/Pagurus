@@ -177,9 +177,11 @@ class Action:
 
         # 1.2 try to get a renter container from interaction controller
         rent_start = time.time()
+        '''
         if container is None:
             container = self.rent_container()
             container_way = 'rent'
+        '''
         rent_end = time.time()
         
         # 1.3 create a new container
@@ -372,13 +374,13 @@ class Action:
 
     # do the repack and cleaning work regularly
     def repack_and_clean(self):
-        print('## repack_clean',len(self.exec_pool), len(self.lender_pool))
         # self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
         
         # repack containers
         self.update_statistics()
         repack_container = None
         
+        '''
         if len(self.exec_pool) > 0:
             n = len(self.exec_pool) + len(self.lender_pool) + len(self.renter_pool)
             idle_sign = idle_status_check(1/self.lambd, n-1, 1/self.rec_mu, self.qos_time, self.qos_real, self.qos_requirement, self.last_request_time)
@@ -386,7 +388,8 @@ class Action:
             if idle_sign:
                 self.num_exec -= 1
                 repack_container = self.exec_pool.pop(0)
-       
+        '''
+
         # find the old containers
         old_container = []
         self.exec_pool = clean_pool(self.exec_pool, exec_lifetime, old_container)
@@ -434,9 +437,9 @@ def favg(a):
     return math.fsum(a) / len(a)
 
 # life time of three different kinds of containers
-exec_lifetime = 30
-lender_lifetime = 60
-renter_lifetime = 20
+exec_lifetime = 30 / 2
+lender_lifetime = 60 / 2
+renter_lifetime = 20 / 2
 
 # the pool list is in order:
 # - at the tail is the hottest containers (most recently used)

@@ -6,26 +6,33 @@ import json
 import sys
 import os
 
-rows = []
-dir = '/home/openwhisk/gls/azure_trace/results_/image/2/container.csv'
+action = 'video'
+id = 3
+
+dir = 'results_/' + action + '/' + str(id) + '/' + 'set.json' 
+exper = json.loads(open(dir, encoding='utf-8').read())
+invo = exper[0]['invo']   
+
+print('invo:', len(invo))
+
+containers = {}
+dir = 'results_/' + action + '/' + str(id) + '_/' + 'container.csv' 
 with open(dir, newline='') as csvfile:
     reader = csv.DictReader(csvfile)
-    for row in reader:
-        rows.append(row)
-
-rows.sort(key=lambda k: (k.get('time', 0)))
-
-rows_ = []    
-cnt = 0
-for row in rows:
-    if cnt % 11 == 3:        
-        rows_.append(row)
-    cnt += 1
-
-file_name = 'results/map_reduce.csv'
+    for row in reader:  
+        tm = int(row['time'])
+        containers[tm] = int(row['exec'])
+        
+T = 1610077472
+file_name = 'results/video.csv'
 with open(file_name, mode='w') as csv_file:
-    fieldnames = ['id','time','exec','lender','renter']
+    fieldnames = ['time', 'load', 'container']
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     writer.writeheader()
-    for row in rows_:
+    for i in range(377, 1440):
+        tm = i - 377 + T
+        if tm in containers:
+            row = {'time': tm, 'load': invo[i], 'container': containers[tm]}
+        else:
+            row = {'time': tm, 'load': invo[i], 'container': -1}
         writer.writerow(row)

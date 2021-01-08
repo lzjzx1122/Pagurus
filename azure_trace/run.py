@@ -32,7 +32,7 @@ def send_request(i):
 def run(time_):
     if time_ < 1439:
         gevent.spawn_later(1, run, time_ + 1)
-    for i in range(11):
+    for i in range(1):
         for _ in range(exper[i]['invo'][time_]):
             gevent.spawn(send_request, i)
 

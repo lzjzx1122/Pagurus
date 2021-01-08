@@ -4,11 +4,12 @@ import time
 from multiprocessing import Process
 import subprocess
 
-actions = ["network", "matmul", "image", "map_reduce"]
+actions = ["video"]
 # actions = ["video", "network", "linpack", "disk", "float_operation", "k-means", "markdown2html", "matmul", "image", "map_reduce", "couchdb_test"]
 # iteration = {'video': [7], "float_operation":[8], "k-means": [8], "matmul": [8], "markdown2html":[8], 'image':[8], "map_reduce": [8],  "network": [8],  "linpack":[8], "disk":[8], "couchdb_test":[8]}
 for action in actions:
     for i in range(4, 5):
+        '''
         dir = 'results_/' + action + '/' + str(i)
         os.system('cp ' + dir + '/action_config.yaml ' + '../intraaction_controller/action_config.yaml')
         os.system('python3 ../interaction_controller/test_inter/init.py')
@@ -41,4 +42,4 @@ for action in actions:
         os.system('./kill.sh ' + str(intra.pid))
         os.system('python3 get_results.py ' + dir + '_')
         time.sleep(30)
-        '''
+         
