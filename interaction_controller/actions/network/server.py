@@ -11,6 +11,6 @@ def upload():
     return ('OK', 200)
 
 if __name__ == '__main__':
-    server = WSGIServer(('10.2.64.8', 12345), proxy)
+    server = WSGIServer(('172.20.185.118', 12345), proxy)
     server.serve_forever()
 

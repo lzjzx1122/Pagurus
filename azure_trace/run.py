@@ -25,9 +25,9 @@ exper = json.loads(open(sys.argv[1], encoding='utf-8').read())
 
 def send_request(i):
     # print('send to', exper[i]['name'])
-    url = "http://0.0.0.0:5000/listen"
+    url = "http://0.0.0.0:5100/action"
     action = exper[i]['name']
-    requests.post(url, json = {"action_name": action, "params": {'timeout': exper[i]['runtime'], 'param': parameters[action]}})
+    requests.post(url, json = {"action": action, "params": {'timeout': exper[i]['runtime'], 'param': parameters[action]}})
     
 def run(time_):
     if time_ < 1439:
