@@ -44,7 +44,7 @@ def stop(node):
 	url = 'http://' + node + ':5002/' 
 	requests.get(url + 'stop')
 	
-for i in range(1, 11):
+for i in range(2, 11):
 	for action in actions:
 		os.system('python3 /root/Pagurus/load_balancer/init.py')
 		pool = []
