@@ -28,13 +28,23 @@ def send_request(i):
     url = "http://0.0.0.0:5100/action"
     action = exper[i]['name']
     requests.post(url, json = {"action": action, "params": {'timeout': exper[i]['runtime'], 'param': parameters[action]}})
-    
+'''    
 def run(time_):
     if time_ < 1439:
         gevent.spawn_later(1, run, time_ + 1)
     for i in range(1):
         for _ in range(exper[i]['invo'][time_]):
             gevent.spawn(send_request, i)
+'''
+C = 3
+def run(time_):
+	print('######################time_:', time_)
+	if time_ < 1440 * C - 1:
+		gevent.spawn_later(1 / C, run, time_ + 1)
+	for i in range(11):
+		for _ in range(exper[i]['invo'][time_ // C]):
+			gevent.spawn(send_request, i)
+
 
 run(0)
 

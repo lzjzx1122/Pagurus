@@ -44,7 +44,7 @@ def stop(node):
 	url = 'http://' + node + ':5002/' 
 	requests.get(url + 'stop')
 	
-for i in range(1, 6):
+for i in range(1, 11):
 	for action in actions:
 		os.system('python3 /root/Pagurus/load_balancer/init.py')
 		pool = []
@@ -52,15 +52,20 @@ for i in range(1, 6):
 			print('node:', node)
 			pool.append(gevent.spawn(start, node, action, i))
 		gevent.joinall(pool)
+		time.sleep(30)
 		head = subprocess.Popen(['python3', '/root/Pagurus/load_balancer/load_balancer.py'])
 		time.sleep(30)
 		dir = 'results/' + action + '/' + str(i)
-		os.system('python3 run.py ' + dir + '/set.json')
-		time.sleep(30)
+		memory = subprocess.Popen(['python3', 'memory.py'])
+		run = subprocess.Popen(['python3', 'run.py', dir + '/set.json'])
+		#os.system('python3 run.py ' + dir + '/set.json')
+		time.sleep(1530)	
+		os.system('kill -9 ' + str(memory.pid))
 		os.system('kill -9 ' + str(head.pid))
+		os.system('kill -9 ' + str(run.pid))
 		for node in nodes:
 			stop(node)
-		dir = 'head_results/' + action + '/' + str(i) + '_'
+		dir = 'head_results5/' + action + '/' + str(i) + '_'
 		os.system('mkdir ' + dir)
 		os.system('python3 get_results.py ' + dir)
 		time.sleep(30)

@@ -15,7 +15,7 @@ def run():
     total = info.total
     used = info.used
     cpu = psutil.cpu_percent()
-    print('cpu', cpu)
+    #print('cpu', cpu)
     db[uuid.uuid4().hex] = {'time': time.time(), 'memory': used / total, 'cpu':cpu}
 
 gevent.spawn_later(1, run)

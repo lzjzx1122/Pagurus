@@ -39,11 +39,11 @@ class LoadBalancer:
 		for node in range(hash_node, hash_node+server_count):
 			new_node = node % server_count
             # print('get_new_node:', new_node, nodes)	
-			if new_node not in nodes and self.check_server_threshold(new_node, 80):
+			if new_node not in nodes and self.check_server_threshold(new_node, 70):
 				return new_node
 		return None
         
-	def route(self, action_name, params):
+	def route(self, action_name, params, depth):
 		if action_name not in self.route_table.keys() or len(self.route_table[action_name]) == 0: # new action
 			self.route_table[action_name] = []
 			new_node = self.get_new_node(action_name, self.route_table[action_name])
@@ -54,7 +54,7 @@ class LoadBalancer:
 		ret = Response(status=404)
 		sent = False
 		for node in self.route_table[action_name] :
-			if self.check_server_threshold(node, 80):
+			if self.check_server_threshold(node, 90):
 				ret = self.send_request(node, action_name, params)
 				sent = True
 				break
@@ -65,7 +65,14 @@ class LoadBalancer:
 			if new_node != None:
 				self.route_table[action_name].append(new_node)
 				ret = self.send_request(new_node, action_name, params)
-			return ret
+				return ret
+			else:
+				time.sleep(0.05)
+				if depth < 100:
+					return self.route(action_name, params, depth + 1)
+				else:
+					return ret
+				
 
 # action in route table?
 # no: add action to route, compute parent node, determine load, if ok, parent node -> current node, else check parent+1
@@ -149,7 +156,7 @@ head.debug = False
 def handle_action():
     action_data = request.get_json()
     # print("receive data:", action_data['action'])
-    ret = load_balancer.route(action_data['action'], action_data['params'])
+    ret = load_balancer.route(action_data['action'], action_data['params'], 0)
     return ('OK', 200)  # Response(status=200)
 
 
@@ -196,7 +203,7 @@ def init():
     server = WSGIServer('0.0.0.0:5100', head)
     server.serve_forever()
 
-update_load_cycle = 5
+update_load_cycle = 0.2
 def update_load():
     load_balancer.update_load_info()
     gevent.spawn_later(update_load_cycle, update_load)

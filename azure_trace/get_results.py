@@ -5,14 +5,17 @@ import sys
 
 # result.csv
 
-url = 'http://172.20.185.118:5986/'
+url = 'http://openwhisk:openwhisk@172.20.185.118:5984/'
 server = couchdb.Server(url)
 inter = server['inter_results']
 intra = server['action_results']
 
+print('inter begin')
 inter_data = {}
+print(len(inter))
 for id in inter:
     inter_data[id] = dict(inter[id])
+print('inter end')
 
 rows = []
 for id in intra:
