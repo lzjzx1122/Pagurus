@@ -5,22 +5,33 @@ import uuid
 import gevent
 import action_info
 import couchdb
+import numpy as np
 from container import Container
 from action_info import ActionInfo
 from idle_container_algorithm import idle_status_check
 from action_manager import ActionManager
 from port_manager import PortManager
 
-repack_clean_interval = 2.000 # repack and clean every 5 seconds
+one_second = 1
+# life time of three different kinds of containers
+exec_lifetime = 900 / one_second # 15 mins / one_second
+lender_lifetime = 900 / one_second # 15 mins / one_second
+renter_lifetime = 600 / one_second # 10 mins / one_second
+
+update_arrival_buffer_interval = 900 / one_second # 15 mins / one_second
+repack_clean_interval = 6 # repack and clean every 6 seconds
 dispatch_interval = 0.005 # 200 qps at most
 timer = None
 update_rate = 0.65 # the update rate of lambda and mu
-update_container_cycle = 1
+update_container_cycle = 6 # 1s
 
 dispatch_thread = None
 repack_clean_thread = None
 update_container_thread = None
+update_arrival_buffer_thread = None
 all_action = {}
+
+db_container_global = None
 
 # get action info from config file and do initial job
 # config_file is the filename of config file
@@ -36,20 +47,31 @@ def init(config_file, port_range, db_url, db_name):
 
     db_server = couchdb.Server(db_url)
     if db_name in db_server:
-        db = db_server[db_name]
-    else:
-        db = db_server.create(db_name)
+        db_server.delete(db_name)
+    db = db_server.create(db_name)
     
+    if 'zygote_time' in db_server:
+        db_server.delete('zygote_time')
+    db_zygote = db_server.create('zygote_time')
+    
+    if 'lend_info' in db_server:
+        db_server.delete('lend_info')
     db_lend = db_server.create('lend_info')
-    db_container = db_server.create('container')
+    
+    if 'container' in db_server:
+        db_server.delete('container')
+    global db_container_global
+    db_container_global = db_server.create('container')
+    
     for info in info_list:
-        action = Action(client, db, db_lend, db_container, info, pm, am)
+        action = Action(client, db, db_lend, db_container_global, db_zygote, info, pm, am)
         all_action[info.action_name] = action
 
-    dispatch_thread = gevent.spawn_later(dispatch_interval, dispatch) #, all_action)
-    repack_clean_thread = gevent.spawn_later(repack_clean_interval, repack_clean) #, all_action)
-    gevent.spawn_later(update_container_cycle, update_container)
-    
+    dispatch_thread = gevent.spawn_later(dispatch_interval, dispatch) 
+    repack_clean_thread = gevent.spawn_later(repack_clean_interval, repack_clean) 
+    update_container_thread = gevent.spawn_later(update_container_cycle, update_container)
+    update_arrival_buffer_thread = gevent.spawn_later(update_arrival_buffer_interval, update_arrival_buffer)
+
     return all_action
 
 def dispatch():
@@ -70,8 +92,21 @@ def update_container():
     global update_container_thread, all_action
     update_container_thread = gevent.spawn_later(update_container_cycle, update_container)
 
+    total_exec, total_lender, total_renter = 0, 0, 0
     for action in all_action.values():
         action.update_container()
+        total_exec += action.num_exec
+        total_lender += action.num_lender
+        total_renter += action.num_renter
+    global db_container_global
+    db_container_global[str(time.time()) + '_all'] = {'action': 'all', 'time': time.time(), 'exec': total_exec, 'lender': total_lender, 'renter': total_renter}
+    
+def update_arrival_buffer():
+    global update_arrival_buffer_thread, all_action
+    update_arrival_buffer_thread = gevent.spawn_later(update_arrival_buffer_interval, update_arrival_buffer)
+
+    for action in all_action.values():
+        action.update_zygote_timeout()
 
 # stop all the action
 # function returns when all requests are done
@@ -88,18 +123,20 @@ class RequestInfo:
         self.arrival = time.time()
 
 class Action:
-    def __init__(self, client, database, db_lend, db_container, action_info, port_manager, action_manager):
+    def __init__(self, client, database, db_lend, db_container, db_zygote, action_info, port_manager, action_manager):
+        self.rent_option = True
         self.client = client
         self.info = action_info
         self.name = action_info.action_name
         self.port_manager = port_manager
         self.action_manager = action_manager
         # self.pwd = pwd
-        self.img_name = action_info.img_name
-        self.pack_img_name = self.img_name + '_repack'
+        self.img_name = 'pagurus_base' #action_info.img_name
+        self.pack_img_name = 'pagurus_base' # self.img_name + '_repack'
         self.database = database
         self.db_lend = db_lend
         self.db_container = db_container
+        self.db_zygote = db_zygote
         self.max_container = action_info.max_container
         
         self.num_processing = 0
@@ -112,6 +149,7 @@ class Action:
         self.exec_pool = []
         self.lender_pool = []
         self.renter_pool = []
+        self.max_lender_pool = 1
 
         # start a timer for repack and clean
         # self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
@@ -119,7 +157,9 @@ class Action:
         self.working = set()
 
         # statistical infomation for idle container identifying
-        self.last_request_time = -1
+        # self.last_request_time = -1
+        self.zygote_time = 60 / one_second # 1min / one_second
+        self.arrival_buffer = []
         self.lambd = -1
         self.rec_mu = -1
         self.qos_real = 1
@@ -131,16 +171,31 @@ class Action:
             'alltime': []
         }
     
+    def get_db_key(self):
+        return str(time.time()) + '_' + self.name
+
     def update_container(self):
-        self.db_container[uuid.uuid4().hex] = {'action': self.name, 'time': time.time(), 'exec': self.num_exec, 'lender': self.num_lender, 'renter': self.num_renter}
+        self.db_container[self.get_db_key()] = {'action': self.name, 'time': time.time(), 'exec': self.num_exec, 'lender': self.num_lender, 'renter': self.num_renter}
+        
+    def update_zygote_timeout(self):
+        if len(self.arrival_buffer) >= 15:
+            interval = []
+            for i in range(1, len(self.arrival_buffer)):
+                interval.append(self.arrival_buffer[i] - self.arrival_buffer[i - 1])
+            mu = np.mean(interval)
+            sigma = np.std(interval)
+            self.zygote_time = mu + 2 * sigma  
+            self.db_zygote[str(time.time()) + '_' + self.name] = {'action': self.name, 'time': time.time(), 'zygote_time': self.zygote_time}
+        self.arrival_buffer = []    
         
     # put the request into request queue
     def send_request(self, request_id, data):
         self.working.add(gevent.getcurrent())
         start = time.time()
         self.request_log['start'].append(start)
-        self.last_request_time = start
-        
+        # self.last_request_time = start
+        self.arrival_buffer.append(start)
+
         req = RequestInfo(request_id, data)
         req.queue_len = len(self.rq)
         self.rq.append(req)
@@ -177,11 +232,10 @@ class Action:
 
         # 1.2 try to get a renter container from interaction controller
         rent_start = time.time()
-        '''
-        if container is None:
-            container = self.rent_container()
-            container_way = 'rent'
-        '''
+        if self.rent_option:
+            if container is None:
+                container = self.rent_container()
+                container_way = 'rent'
         rent_end = time.time()
         
         # 1.3 create a new container
@@ -262,18 +316,23 @@ class Action:
         self.init_container(container)
         return container
 
-    def create_container_with_repacked_image(self):
+    def create_container_with_repacked_image(self, tmp_lasttime):
+        if self.num_lender >= self.max_lender_pool:
+            return
+
+        self.num_lender += 1
+        
         try:
             container = Container.create(self.client, self.pack_img_name, self.port_manager.get(), 'lender')
         except Exception as e:
             print('create error:', e)
             return None
-
+        
         self.init_container(container)
+        container.lasttime = tmp_lasttime
         self.put_container(container)
-        self.num_lender += 1
-        lend_log = {'time': time.time(), 'action': self.name, 'qos_target': self.qos_time, 'qos': self.qos_real, 'lender_pool': len(self.lender_pool), 'type': 'create'}
-        self.db_lend[uuid.uuid4().hex] = lend_log 
+        lend_log = {'time': time.time(), 'action': self.name, 'lender_pool': self.num_lender, 'type': 'create'}
+        self.db_lend[self.get_db_key()] = lend_log 
         return container
 
     # put the container into one of the three pool, according to its attribute
@@ -306,9 +365,10 @@ class Action:
 
         # take the least hot lender container
         container = self.lender_pool.pop(0)
-        
-        gevent.spawn_later(1, self.create_container_with_repacked_image)
+        tmp_lasttime = container.lasttime
         self.num_lender -= 1
+        
+        gevent.spawn_later(1, self.create_container_with_repacked_image, tmp_lasttime)
         container_id = container.container.id
         port = container.port
         return container_id, port
@@ -369,7 +429,7 @@ class Action:
             self.request_log['alltime'] = []
             new_qos_real = sum([x < self.qos_time for x in alltime]) / len(alltime)
 
-            print("qos: ", new_qos_real, " ", update_rate, " ", sum([x < self.qos_time for x in alltime]), " ", len(alltime), " ", )
+            # print("qos: ", new_qos_real, " ", update_rate, " ", sum([x < self.qos_time for x in alltime]), " ", len(alltime), " ", )
             self.qos_real = update_rate * self.qos_real + (1 - update_rate) * new_qos_real
 
     # do the repack and cleaning work regularly
@@ -379,17 +439,7 @@ class Action:
         # repack containers
         self.update_statistics()
         repack_container = None
-        
-        '''
-        if len(self.exec_pool) > 0:
-            n = len(self.exec_pool) + len(self.lender_pool) + len(self.renter_pool)
-            idle_sign = idle_status_check(1/self.lambd, n-1, 1/self.rec_mu, self.qos_time, self.qos_real, self.qos_requirement, self.last_request_time)
-            print("#idle: ", idle_sign, " ", 1/self.lambd, " ", n-1, " ", 1/self.rec_mu, " ", self.qos_time, " ", self.qos_real, " ", self.qos_requirement, self.last_request_time)
-            if idle_sign:
-                self.num_exec -= 1
-                repack_container = self.exec_pool.pop(0)
-        '''
-
+            
         # find the old containers
         old_container = []
         self.exec_pool = clean_pool(self.exec_pool, exec_lifetime, old_container)
@@ -409,16 +459,33 @@ class Action:
         for c in old_container:
             self.remove_container(c)
         
-        # time consuming work is put here
-        #for c in old_container:
-        #    self.remove_container(c)
+        if self.rent_option:
+            repack_container = None
+            for c in self.exec_pool:
+                if repack_container == None or c.lasttime < repack_container.lasttime:
+                    repack_container = c
+            if repack_container != None and time.time() - repack_container.lasttime < self.zygote_time:
+                repack_container = None
+            '''
+            if len(self.exec_pool) > 0:
+                n = len(self.exec_pool) + len(self.lender_pool) + len(self.renter_pool)
+                idle_sign = idle_status_check(1/self.lambd, n-1, 1/self.rec_mu, self.qos_time, self.qos_real, self.qos_requirement, self.last_request_time)
+                print("#idle: ", idle_sign, " ", 1/self.lambd, " ", n-1, " ", 1/self.rec_mu, " ", self.qos_time, " ", self.qos_real, " ", self.qos_requirement, self.last_request_time)
+                if idle_sign:
+                    self.num_exec -= 1
+                    repack_container = self.exec_pool.pop(0)
+            '''
         
-        if repack_container is not None:
+        if repack_container is not None and self.num_lender < self.max_lender_pool:
+            self.num_exec -= 1
+            tmp_lasttime = repack_container.lasttime
+            self.exec_pool.remove(repack_container)
             repack_container = self.repack_container(repack_container)
+            repack_container.lasttime = tmp_lasttime
             self.lender_pool.append(repack_container)
             self.num_lender += 1
-            lend_log = {'time': time.time(), 'action': self.name, 'qos_target': self.qos_time, 'qos': self.qos_real, 'lender_pool': len(self.lender_pool), 'type': 'repack'}
-            self.db_lend[uuid.uuid4().hex] = lend_log
+            lend_log = {'time': time.time(), 'action': self.name, 'lender_pool': self.num_lender, 'type': 'repack'}
+            self.db_lend[self.get_db_key()] = lend_log
             
         if len(self.lender_pool) == 1:
             self.action_manager.have_lender(self.name)
@@ -435,11 +502,6 @@ class Action:
 
 def favg(a):
     return math.fsum(a) / len(a)
-
-# life time of three different kinds of containers
-exec_lifetime = 30 / 2
-lender_lifetime = 60 / 2
-renter_lifetime = 20 / 2
 
 # the pool list is in order:
 # - at the tail is the hottest containers (most recently used)

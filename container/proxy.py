@@ -69,11 +69,14 @@ def run():
     # record the execution time
     start = time.time()
 
+    runner.run(inp)
+    '''
     process_ = Process(target=runner.run, args=[inp])
     process_.start()
     process_.join(timeout=max(0, inp['timeout'] - 0.005))
     process_.terminate()
-    
+    '''
+
     # out = runner.run(inp)
     end = time.time()
     print('duration:', end - start)

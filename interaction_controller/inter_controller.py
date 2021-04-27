@@ -32,10 +32,11 @@ class inter_controller():
         self.update_repack_cycle = 60 * 30
         self.check_redirect_cycle = 60
         db_server = couchdb.Server('http://openwhisk:openwhisk@127.0.0.1:5984/')
+        if 'renter_lender_info' in db_server:
+            db_server.delete('renter_lender_info')
         self.db = db_server.create('renter_lender_info')
         
     def print_info(self):
-        #print('----------------------------------------------------')
         print('lender_renter_info:', self.lender_renter_info)
         '''
         for lender in self.lender_renter_info:
@@ -124,7 +125,7 @@ class inter_controller():
             renter = max(sim, key = sim.get)
             for (p, v) in all_packages[renter].items():
                 requirements.update({p: v}) 
-                renters.update({renter: sim[renter]})
+            renters.update({renter: sim[renter]})
             sharing_actions -= 1
             sim.pop(renter)
         
@@ -197,8 +198,8 @@ class inter_controller():
 
     def repack(self, action_name, repack_updating=False):
         renters, requirements = self.choose_renters(action_name)
-        # print('renters:', action_name, renters)
-        # print('get_renters: ', renters, requirements)
+        #print('renters:', action_name, renters)
+        #print('get_renters: ', renters, requirements)
         # if action_name not in self.repack_packages.keys() or self.requirements_changed(action_name, requirements):
         #    self.generate_repacked_image(action_name, renters, requirements, repack_updating)
         self.repack_info[action_name] = renters        
@@ -273,7 +274,7 @@ intra_url = 'http://0.0.0.0' + ':' + str(intra_port) + '/'
 head_url = 'http://0.0.0.0:5100'
 
 # An inter-controller instance.            
-controller = inter_controller(intra_url, '/home/openwhisk/gls/interaction_controller/build_file/packages.json')
+controller = inter_controller(intra_url, '/root/sosp/Pagurus/interaction_controller/build_file/azure_packages.json')
 
 # a Flask instance.
 proxy = Flask(__name__)
@@ -283,9 +284,8 @@ db_url = 'http://openwhisk:openwhisk@127.0.0.1:5984/'
 db_name = 'inter_results'
 db_server = couchdb.Server(db_url)
 if db_name in db_server:
-    db = db_server[db_name]
-else:
-    db = db_server.create(db_name)
+    db_server.delete(db_name)
+db = db_server.create(db_name)
 
 # listen user requests
 @proxy.route('/listen', methods=['POST'])
@@ -314,7 +314,7 @@ def have_lender():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
     controller.add_lender(action_name)
-    controller.print_info()
+    # controller.print_info()
     return ('OK', 200)
 
 @proxy.route('/no_lender', methods=['POST'])
@@ -322,7 +322,7 @@ def no_lender():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
     controller.remove_lender(action_name)
-    controller.print_info()
+    # controller.print_info()
     return ('OK', 200)
 
 @proxy.route('/repack_image', methods=['POST'])
@@ -330,7 +330,7 @@ def repack_image():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
     controller.repack(action_name)
-    controller.print_info()
+    # controller.print_info()
     return ('action_' + action_name + '_repack', 200)
 
 @proxy.route('/rent', methods=['POST'])
@@ -339,10 +339,10 @@ def rent():
     action_name = inp['action_name']
     res = controller.schedule_lender(action_name)
     if res == None:
-        print('rent: no lender')
+        # print('rent: no lender')
         return ('no lender', 200)
     else:
-        print ('rent: ', action_name, ' ', res[0], ' ', res[2])
+        # print ('rent: ', action_name, ' ', res[0], ' ', res[2])
         return (json.dumps({'id': res[1], 'port': res[2]}), 200)
 
 # communication with head 
@@ -388,13 +388,11 @@ def lender_info():
     return (json.dumps({'node': inter_url, 'containers': containers}), 200)
 
 def init():
-    '''
     for action in controller.all_packages.keys():
         # controller.generate_base_image(action)
         controller.repack(action)
     print(controller.repack_info)
-    '''
-    # process = subprocess.Popen(['sudo', '/home/openwhisk/anaconda3/bin/python3', '/home/openwhisk/gls/intraaction_controller/proxy.py', str(intra_port)])
+    # process = subprocess.Popen(['sudo', '/root/anaconda3/bin/python3', '/root/gls/intraaction_controller/proxy.py', str(intra_port)])
     server = WSGIServer(('0.0.0.0', inter_port), proxy)
     server.serve_forever()
 

@@ -19,10 +19,10 @@ COPY pip.conf /etc/pip.conf
 
 # COPY sources.list /etc/apt/sources.list
 
-RUN apt-get -y update && \
-    apt-get -y upgrade
+# RUN apt-get -y update && \
+#    apt-get -y upgrade
 
-RUN apt-get -y install ffmpeg
+# RUN apt-get -y install ffmpeg
 
 # fulfill the structure requirement of proxy
 RUN mkdir /proxy && \

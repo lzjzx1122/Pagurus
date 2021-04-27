@@ -1,9 +1,0 @@
-action,cold,warm,create,rent,queue
-linpack,39,3709,39,0,3709
-network,31,1343,31,0,1343
-disk,0,261,0,2,259
-image,2,7,2,1,6
-video,4,14,4,3,11
-matmul,3,96,3,0,96
-k-means,7,420,7,0,420
-couchdb_test,4,368,4,0,368

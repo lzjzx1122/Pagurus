@@ -5,10 +5,10 @@ import sys
 
 # result.csv
 
-url = 'http://openwhisk:openwhisk@172.20.185.118:5984/'
+url = 'http://openwhisk:openwhisk@127.0.0.1:5984/'
 server = couchdb.Server(url)
 inter = server['inter_results']
-intra = server['action_results']
+intra = server['intra_results']
 
 print('inter begin')
 inter_data = {}
@@ -24,9 +24,7 @@ for id in intra:
         print(intra_doc['action_name'])
         continue
     inter_doc = dict(inter_data[id])
-    # if 'action' not in intra_doc:
-        # print(intra_doc)
-    row = { 'id': id, 'host': inter_doc['host'], 'action': intra_doc['action_name'], 'start_way': intra_doc['start_way'], 'container_attr': intra_doc['container_attr'], \
+    row = { 'id': id, 'action': intra_doc['action_name'], 'start_way': intra_doc['start_way'], 'container_attr': intra_doc['container_attr'], \
         'container_way': intra_doc['container_way'], 'queue_time': intra_doc['queue_time'], \
         'create_time': intra_doc['create_time'], 'rent_time': intra_doc['rent_time'], \
         'inter_start': inter_doc['start'], 'inter_end': inter_doc['end'], \
@@ -37,7 +35,7 @@ rows = sorted(rows, key = lambda i: (i['inter_start'], i['inter_end']))
 
 file_name = sys.argv[1] + '/results.csv'
 with open(file_name, mode='w') as csv_file:
-    fieldnames = ['id', 'host', 'action', 'start_way', 'container_attr', 'container_way', \
+    fieldnames = ['id', 'action', 'start_way', 'container_attr', 'container_way', \
         'queue_time', 'create_time', 'rent_time', 'inter_start', \
         'inter_end', 'end-to-end', 'container_start', 'container_end', 'exeuction']
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
@@ -45,6 +43,7 @@ with open(file_name, mode='w') as csv_file:
     for row in rows:
         writer.writerow(row)
 
+exit()
 
 # statistic.csv
 data = {}
@@ -70,13 +69,13 @@ lend_info = server['lend_info']
 rows = []
 for id in lend_info:
     doc = dict(lend_info[id])
-    row = {'id': id, 'host': doc['host'], 'time': doc['time'], 'action': doc['action'], 'qos': doc['qos'], 'qos_target': doc['qos_target'], 'lender_pool': doc['lender_pool'], 'type': doc['type']}
+    row = {'id': id, 'time': doc['time'], 'action': doc['action'], 'lender_pool': doc['lender_pool'], 'type': doc['type']}
     rows.append(row)
 rows = sorted(rows, key = lambda i: (i['time']))
 
 file_name = sys.argv[1] + '/lender_info.csv'
 with open(file_name, mode='w') as csv_file:
-    fieldnames = ['id', 'host', 'time', 'action', 'qos', 'qos_target', 'lender_pool', 'type']
+    fieldnames = ['id', 'time', 'action', 'lender_pool', 'type']
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     writer.writeheader()
     for row in rows:
@@ -88,43 +87,55 @@ rent_info = server['renter_lender_info']
 rows = []
 for id in rent_info:
     doc = dict(rent_info[id])
-    row = {'id': id, 'host': doc['host'], 'time': doc['time'], 'lender': doc['lender'], 'renter': doc['renter']}
+    row = {'id': id, 'time': doc['time'], 'lender': doc['lender'], 'renter': doc['renter']}
     rows.append(row)
 rows = sorted(rows, key = lambda i: (i['time']))
 
 file_name = sys.argv[1] + '/renter_lender_info.csv'
 with open(file_name, mode='w') as csv_file:
-    fieldnames = ['id', 'host', 'time', 'lender', 'renter']
+    fieldnames = ['id', 'time', 'lender', 'renter']
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     writer.writeheader()
     for row in rows:
         writer.writerow(row)
 
-'''
-memory = server['memory']
+memory = server['overhead']
 rows = []
 for id in memory:
     doc = dict(memory[id])
-    row = {'id': id, 'time': doc['time'], 'memory': doc['memory'], 'cpu': doc['cpu']}
+    row = {'id': id, 'time': doc['time'], 'inter_memory': doc['inter_memory'], 'intra_memory': doc['intra_memory'], 'inter_cpu': doc['inter_cpu'], 'intra_cpu': doc['intra_cpu']}
     rows.append(row)
-file_name = sys.argv[1] + '/memory.csv'
+file_name = sys.argv[1] + '/overhead.csv'
 with open(file_name, mode='w') as csv_file:
-    fieldnames = ['id', 'time', 'memory', 'cpu']
+    fieldnames = ['id', 'time', 'inter_memory', 'intra_memory', 'inter_cpu', 'intra_cpu']
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     writer.writeheader()
     for row in rows:
         writer.writerow(row)
-'''
 
 memory = server['container']
 rows = []
 for id in memory:
     doc = dict(memory[id])
-    row = {'id': id, 'host': doc['host'], 'action': doc['action'], 'time': doc['time'], 'exec': doc['exec'], 'lender': doc['lender'], 'renter': doc['renter']}
+    row = {'id': id, 'action': doc['action'], 'time': doc['time'], 'exec': doc['exec'], 'lender': doc['lender'], 'renter': doc['renter']}
     rows.append(row)
 file_name = sys.argv[1] + '/container.csv'
 with open(file_name, mode='w') as csv_file:
-    fieldnames = ['id', 'host', 'action', 'time', 'exec', 'lender', 'renter']
+    fieldnames = ['id', 'action', 'time', 'exec', 'lender', 'renter']
+    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+    writer.writeheader()
+    for row in rows:
+        writer.writerow(row)
+
+memory = server['zygote_time']
+rows = []
+for id in memory:
+    doc = dict(memory[id])
+    row = {'id': id, 'action': doc['action'], 'time': doc['time'], 'exec': doc['exec'], 'lender': doc['lender'], 'renter': doc['renter']}
+    rows.append(row)
+file_name = sys.argv[1] + '/container.csv'
+with open(file_name, mode='w') as csv_file:
+    fieldnames = ['id', 'action', 'time', 'exec', 'lender', 'renter']
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     writer.writeheader()
     for row in rows:
