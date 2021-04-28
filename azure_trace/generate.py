@@ -58,7 +58,9 @@ while True:
    
 os.system('mkdir ' + sys.argv[1])
 
-E = 5
+X = [0 for i in range(1440)]
+
+E = 10
 for e in range(E):
     os.system('mkdir ' + sys.argv[1] + '/' + str(e + 1))
 
@@ -78,7 +80,14 @@ for e in range(E):
         name = 'utility' + str(round(i / E))
         exper.append({'name': name, 'id': selected_id[i], 'runtime': selected_aver[i] / 1000 / one_second,\
             'func': selected_func[i], 'count': sum(selected_invo[i]), 'invo': selected_invo[i]})
+        for j in range(1440):
+            if int(selected_invo[i][j]) > 0:
+                X[j] += 1
     os.system('touch ' + sys.argv[1] + '/set.json')
     f = open(sys.argv[1] + '/' + str(e + 1) + '/set.json', 'w', encoding = 'utf-8')
     json.dump(exper, f, sort_keys = False, indent = 4)
 
+for j in range(1440):
+    X[j] /= 3880
+
+# print(X)

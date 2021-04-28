@@ -6,7 +6,7 @@ import subprocess
 
 for i in range(1, 2):
     dir = '/root/sosp/expr/' + str(i)
-    dir_ = dir + '_pagurus'
+    dir_ = dir + '_openwhisk'
     os.system('mkdir ' + dir_)
     os.system('cp ' + dir + '/action_config.yaml ' + '../intraaction_controller/action_config.yaml')
     os.system('python3 ../interaction_controller/test_inter/init.py')

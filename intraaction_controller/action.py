@@ -20,7 +20,7 @@ renter_lifetime = 600 / one_second # 10 mins / one_second
 
 update_arrival_buffer_interval = 900 / one_second # 15 mins / one_second
 repack_clean_interval = 6 # repack and clean every 6 seconds
-dispatch_interval = 0.005 # 200 qps at most
+dispatch_interval = 0.005 # 100 qps at most
 timer = None
 update_rate = 0.65 # the update rate of lambda and mu
 update_container_cycle = 6 # 1s
@@ -94,7 +94,7 @@ def update_container():
 
     total_exec, total_lender, total_renter = 0, 0, 0
     for action in all_action.values():
-        action.update_container()
+        # action.update_container()
         total_exec += action.num_exec
         total_lender += action.num_lender
         total_renter += action.num_renter
@@ -124,7 +124,7 @@ class RequestInfo:
 
 class Action:
     def __init__(self, client, database, db_lend, db_container, db_zygote, action_info, port_manager, action_manager):
-        self.rent_option = True
+        self.rent_option = False
         self.client = client
         self.info = action_info
         self.name = action_info.action_name
@@ -185,7 +185,7 @@ class Action:
             mu = np.mean(interval)
             sigma = np.std(interval)
             self.zygote_time = mu + 2 * sigma  
-            self.db_zygote[str(time.time()) + '_' + self.name] = {'action': self.name, 'time': time.time(), 'zygote_time': self.zygote_time}
+            # self.db_zygote[str(time.time()) + '_' + self.name] = {'action': self.name, 'time': time.time(), 'zygote_time': self.zygote_time}
         self.arrival_buffer = []    
         
     # put the request into request queue

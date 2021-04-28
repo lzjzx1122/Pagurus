@@ -43,8 +43,6 @@ with open(file_name, mode='w') as csv_file:
     for row in rows:
         writer.writerow(row)
 
-exit()
-
 # statistic.csv
 data = {}
 for row in rows:
@@ -133,7 +131,7 @@ for id in memory:
     doc = dict(memory[id])
     row = {'id': id, 'action': doc['action'], 'time': doc['time'], 'exec': doc['exec'], 'lender': doc['lender'], 'renter': doc['renter']}
     rows.append(row)
-file_name = sys.argv[1] + '/container.csv'
+file_name = sys.argv[1] + '/zygote_time.csv'
 with open(file_name, mode='w') as csv_file:
     fieldnames = ['id', 'action', 'time', 'exec', 'lender', 'renter']
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)

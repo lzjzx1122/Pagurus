@@ -25,3 +25,5 @@ for i in range(776):
     os.system('docker stop $(docker ps -a | grep \"' + 'action_' + action + '_repack' + '\" | awk \'{print $1}\')')
     os.system('docker rm $(docker ps -a | grep \"' + 'action_' + action + '_repack' + '\" | awk \'{print $1}\')')
 '''
+
+# os.system('docker rm $(docker ps -a | grep \"' + 'pagurus_base' +  '\" | awk \'{print $1}\')')

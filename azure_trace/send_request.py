@@ -14,7 +14,7 @@ def send_request(i, time_):
     action = exper[i]['name']
     requests.post(url, json = {"action_name": action, "params": {'runtime': exper[i]['runtime']}})
 
-action_number = 776
+action_number = 338
 one_minute = 60
 
 def send_request_single_action(i, time_, total):
@@ -26,10 +26,12 @@ def send_request_single_action(i, time_, total):
 
 def run(time_):
     print('###################### time:', time_)
-    if time_ < 60 - 1:
+    if time_ < 1440 - 1:
         gevent.spawn_later(one_minute, run, time_ + 1)
     for i in range(action_number):
-        gevent.spawn(send_request_single_action, i, 0, int(exper[i]['invo'][time_]))
+        total = int(exper[i]['invo'][time_])
+        if total > 0:
+            gevent.spawn_later(one_minute / total, send_request_single_action, i, 0, total)
 
 run(0)
 gevent.wait()
