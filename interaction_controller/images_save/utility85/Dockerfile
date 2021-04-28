@@ -1,1 +1,0 @@
-FROM pagurus_base

@@ -1,5 +1,6 @@
 import requests
 import gevent
+import time
 
 class ActionManager:
     def __init__(self):
@@ -7,7 +8,6 @@ class ActionManager:
     
     def rent(self, action_name):
         try:
-            # print('send rent: ', action_name)
             res = requests.post('http://0.0.0.0:' + str(self.inter_port) + '/rent', json = {'action_name': action_name})
             if res.text == 'no lender':
                 return None

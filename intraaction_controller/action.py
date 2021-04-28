@@ -16,14 +16,14 @@ one_second = 1
 # life time of three different kinds of containers
 exec_lifetime = 900 / one_second # 15 mins / one_second
 lender_lifetime = 900 / one_second # 15 mins / one_second
-renter_lifetime = 600 / one_second # 10 mins / one_second
+renter_lifetime = 900 / one_second # 10 mins / one_second
 
 update_arrival_buffer_interval = 900 / one_second # 15 mins / one_second
-repack_clean_interval = 6 # repack and clean every 6 seconds
+repack_clean_interval = 5 # repack and clean every 6 seconds
 dispatch_interval = 0.005 # 200 qps at most
 timer = None
 update_rate = 0.65 # the update rate of lambda and mu
-update_container_cycle = 6 # 1s
+update_container_cycle = 5 # 1s
 
 dispatch_thread = None
 repack_clean_thread = None
@@ -149,7 +149,7 @@ class Action:
         self.exec_pool = []
         self.lender_pool = []
         self.renter_pool = []
-        self.max_lender_pool = 1
+        self.max_lender_pool = 2
 
         # start a timer for repack and clean
         # self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
@@ -237,6 +237,7 @@ class Action:
                 container = self.rent_container()
                 container_way = 'rent'
         rent_end = time.time()
+        # print('rent_start_end', rent_start, rent_end)
         
         # 1.3 create a new container
         create_start = time.time()
