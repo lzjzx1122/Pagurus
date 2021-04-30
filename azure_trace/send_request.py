@@ -26,7 +26,11 @@ def send_request_single_action(i, time_, total):
 
 def run(time_):
     print('###################### time:', time_)
+<<<<<<< HEAD
     if time_ < 240 - 1:
+=======
+    if time_ < 1440 - 1:
+>>>>>>> 9dbe30e15f998686d9c24441bbe0e127e6c4c6fe
         gevent.spawn_later(one_minute, run, time_ + 1)
     for i in range(action_number):
         total = int(exper[i]['invo'][time_])

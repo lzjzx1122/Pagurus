@@ -125,7 +125,7 @@ class RequestInfo:
 
 class Action:
     def __init__(self, client, database, db_lend, db_container, db_zygote, action_info, port_manager, action_manager):
-        self.rent_option = True
+        self.rent_option = False
         self.client = client
         self.info = action_info
         self.name = action_info.action_name
@@ -187,7 +187,7 @@ class Action:
             mu = np.mean(interval)
             sigma = np.std(interval)
             self.zygote_time = mu + 2 * sigma  
-            self.db_zygote[str(time.time()) + '_' + self.name] = {'action': self.name, 'time': time.time(), 'zygote_time': self.zygote_time}
+            # self.db_zygote[str(time.time()) + '_' + self.name] = {'action': self.name, 'time': time.time(), 'zygote_time': self.zygote_time}
         self.arrival_buffer = []    
         '''
         if len(self.arrival_buffer) >= 21:
