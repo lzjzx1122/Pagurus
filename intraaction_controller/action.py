@@ -125,7 +125,7 @@ class RequestInfo:
 
 class Action:
     def __init__(self, client, database, db_lend, db_container, db_zygote, action_info, port_manager, action_manager):
-        self.rent_option = False
+        self.rent_option = True
         self.client = client
         self.info = action_info
         self.name = action_info.action_name
@@ -280,6 +280,9 @@ class Action:
         
         # 3. put the container back into pool
         self.put_container(container)
+
+        if container_way == 'rent' or container_way == 'create':
+            self.action_manager.cold_start(self.name)
 
     # get a container from container pool
     # if there's no container in pool, return None

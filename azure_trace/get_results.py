@@ -1,7 +1,7 @@
 import couchdb
 import csv
 import sys
-
+import json
 
 # result.csv
 
@@ -138,3 +138,12 @@ with open(file_name, mode='w') as csv_file:
     writer.writeheader()
     for row in rows:
         writer.writerow(row)
+
+repack = server['repack_info']
+repack_info = {}
+for id in repack:
+    doc = dict(memory[id])
+    repack_info[id] = doc
+file_name = sys.argv[1] + '/repack_info.csv'
+f = open(file_name, 'w', encoding = 'utf-8')
+json.dump(repack_info, f, sort_keys = False, indent = 4)

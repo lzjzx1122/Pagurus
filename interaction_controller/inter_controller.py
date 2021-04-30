@@ -26,7 +26,7 @@ for i in range(500):
 class inter_controller():
     def __init__(self, intra_url, package_path):
         self.intra_url = intra_url
-        self.sharing_actions = 10
+        self.sharing_actions = 4
         self.renter_lender_info = {} #{'renter A': {'lender B': cos, 'lender C':cos}}
         self.lender_renter_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
         self.repack_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
@@ -41,6 +41,12 @@ class inter_controller():
         if 'renter_lender_info' in db_server:
             db_server.delete('renter_lender_info')
         self.db = db_server.create('renter_lender_info')
+        if 'repack_info' in db_server:
+            db_server.delete('repack_info')
+        self.db_repack = db_server.create('repack_info')
+        self.cold_start = {}
+        self.has_lender = {}
+        self.repack_period = 60 * 15
         
     def print_info(self):
         print('lender_renter_info:', self.lender_renter_info)
@@ -74,7 +80,7 @@ class inter_controller():
             self.lender_renter_info.pop(lender)    
 
     def add_lender(self, lender):
-        renters = self.repack_info[lender]
+        renters = self.repack_info[lender].copy()
         self.lender_renter_info[lender] = renters
         for (k, v) in renters.items():
             if k not in self.renter_lender_info.keys():
@@ -213,6 +219,52 @@ class inter_controller():
         self.repack_packages[action_name] = requirements 
         return renters
 
+    def periodical_repack(self):
+        value = {}
+        for action in self.all_packages:
+            value[action] = 1
+        cold_start = self.cold_start.copy()
+        # cold_start = {'video': 100, 'linpack': 20}
+        self.cold_start = {}
+        for action in cold_start:
+            value[action] = cold_start[action]
+        position = []
+        for action in value:
+            for i in range(value[action]):
+                position.append(action)
+        
+        randrange = len(position) - 1
+        repack_info = {}
+        for lender in self.all_packages:
+            renters = {}
+            for i in range(self.sharing_actions):
+                renter = position[random.randint(0, randrange)]
+                while renter in renters:
+                    renter = position[random.randint(0, randrange)]
+                renters[renter] = 1
+            repack_info[lender] = renters
+        
+        '''
+        for lender in self.all_packages:
+            self.has_lender[lender] = True
+        '''
+
+        self.repack_info = repack_info
+        self.renter_lender_info = {}
+        self.lender_renter_info = {}
+        for lender in self.has_lender:
+            if self.has_lender[lender] == True:
+                renters = repack_info[lender].copy()
+                self.lender_renter_info[lender] = renters
+                for (k, v) in renters.items():
+                    if k not in self.renter_lender_info.keys():
+                        self.renter_lender_info.update({k: {lender: v}})
+                    else:
+                        self.renter_lender_info[k].update({lender: v})
+        self.db_repack[str(time.time())] = {'repack_info': self.repack_info, 'lender_renter_info': self.lender_renter_info, 'renter_lender_info': self.renter_lender_info}
+        # print('lender_renter:', self.lender_renter_info)
+        # print('renter_lender:', self.renter_lender_info)
+
     def schedule_lender(self, action_name):
         if action_name in self.renter_lender_info.keys() and len(self.renter_lender_info[action_name]) > 0:
             lender = max(self.renter_lender_info[action_name], key = self.renter_lender_info[action_name].get) 
@@ -315,12 +367,22 @@ def listen():
     end = time.time()
     db[request_id] = {'start': start, 'end': end, 'end-to-end': end - start}
     return ('OK', 200)
+    
+@proxy.route('/cold_start', methods=['POST'])
+def cold_start():
+    inp = request.get_json(force=True, silent=True)
+    name = inp['action_name']
+    if name not in controller.cold_start:
+        controller.cold_start[name] = 0
+    controller.cold_start[name] += 1
+    return ('OK', 200)
 
 @proxy.route('/have_lender', methods=['POST'])
 def have_lender():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
     controller.add_lender(action_name)
+    controller.has_lender[action_name] = True
     # controller.print_info()
     return ('OK', 200)
 
@@ -329,6 +391,7 @@ def no_lender():
     inp = request.get_json(force=True, silent=True)
     action_name = inp['action_name']
     controller.remove_lender(action_name)
+    controller.has_lender[action_name] = False
     # controller.print_info()
     return ('OK', 200)
 
@@ -389,16 +452,21 @@ def load_info():
     ret[inter_url] = node
     return (json.dumps(ret), 200)
 
+def periodical_repack():
+    gevent.spawn_later(controller.repack_period, periodical_repack)
+    controller.periodical_repack()
+    print(controller.repack_info)
+    
 @proxy.route('/lender-info', methods=['GET']) # need to install sar
 def lender_info():
     containers = controller.get_lender_list()
     return (json.dumps({'node': inter_url, 'containers': containers}), 200)
 
 def init():
-    for action in controller.all_packages.keys():
+    periodical_repack()
+    # for action in controller.all_packages.keys():
         # controller.generate_base_image(action)
-        controller.repack(action)
-    print(controller.repack_info)
+        # controller.repack(action)
     '''
     cnt = {}
     for k1 in controller.repack_info:
