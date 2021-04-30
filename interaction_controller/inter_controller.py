@@ -17,10 +17,16 @@ import requests
 import socket
 import uuid
 
+np.random.seed(666666)
+seed_list = list(np.random.randint(low=0, high=1000000000, size=500))
+rand_seed = {}
+for i in range(500):
+    rand_seed['utility' + str(i)] = seed_list[i]
+
 class inter_controller():
     def __init__(self, intra_url, package_path):
         self.intra_url = intra_url
-        self.sharing_actions = 5
+        self.sharing_actions = 10
         self.renter_lender_info = {} #{'renter A': {'lender B': cos, 'lender C':cos}}
         self.lender_renter_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
         self.repack_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
@@ -79,6 +85,7 @@ class inter_controller():
     def choose_renters(self, lender):
         all_packages = self.all_packages.copy()
         tmp = list(all_packages.items())
+        random.seed(rand_seed[lender])
         random.shuffle(tmp)
         all_packages = dict(tmp)
         packages = all_packages.pop(lender)
@@ -392,6 +399,22 @@ def init():
         # controller.generate_base_image(action)
         controller.repack(action)
     print(controller.repack_info)
+    '''
+    cnt = {}
+    for k1 in controller.repack_info:
+        for k2 in controller.repack_info[k1]:
+            if k2 not in cnt:
+                cnt[k2] = 0
+            cnt[k2] += 1
+    # print(cnt)
+    cnt2 = {}
+    for i in range(30):
+        cnt2[i] = 0
+    for k in cnt:
+        cnt2[cnt[k]] += 1
+    print(cnt2)
+    print(cnt2.values())
+    '''
     # process = subprocess.Popen(['sudo', '/root/anaconda3/bin/python3', '/root/gls/intraaction_controller/proxy.py', str(intra_port)])
     server = WSGIServer(('0.0.0.0', inter_port), proxy)
     server.serve_forever()

@@ -129,11 +129,11 @@ memory = server['zygote_time']
 rows = []
 for id in memory:
     doc = dict(memory[id])
-    row = {'id': id, 'action': doc['action'], 'time': doc['time'], 'exec': doc['exec'], 'lender': doc['lender'], 'renter': doc['renter']}
+    row = {'id': id, 'action': doc['action'], 'time': doc['time'], 'zygote_time': doc['zygote_time']}
     rows.append(row)
 file_name = sys.argv[1] + '/zygote_time.csv'
 with open(file_name, mode='w') as csv_file:
-    fieldnames = ['id', 'action', 'time', 'exec', 'lender', 'renter']
+    fieldnames = ['id', 'action', 'time', 'zygote_time']
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     writer.writeheader()
     for row in rows:

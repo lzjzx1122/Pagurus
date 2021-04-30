@@ -5,6 +5,7 @@ import uuid
 import gevent
 import action_info
 import couchdb
+import sys
 import numpy as np
 from container import Container
 from action_info import ActionInfo
@@ -94,7 +95,7 @@ def update_container():
 
     total_exec, total_lender, total_renter = 0, 0, 0
     for action in all_action.values():
-        action.update_container()
+        # action.update_container()
         total_exec += action.num_exec
         total_lender += action.num_lender
         total_renter += action.num_renter
@@ -149,7 +150,7 @@ class Action:
         self.exec_pool = []
         self.lender_pool = []
         self.renter_pool = []
-        self.max_lender_pool = 2
+        self.max_lender_pool = int(sys.argv[2])
 
         # start a timer for repack and clean
         # self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
@@ -158,7 +159,7 @@ class Action:
 
         # statistical infomation for idle container identifying
         # self.last_request_time = -1
-        self.zygote_time = 60 / one_second # 1min / one_second
+        self.zygote_time = int(sys.argv[3])# 60 / one_second # 1min / one_second
         self.arrival_buffer = []
         self.lambd = -1
         self.rec_mu = -1
@@ -178,6 +179,7 @@ class Action:
         self.db_container[self.get_db_key()] = {'action': self.name, 'time': time.time(), 'exec': self.num_exec, 'lender': self.num_lender, 'renter': self.num_renter}
         
     def update_zygote_timeout(self):
+        '''
         if len(self.arrival_buffer) >= 15:
             interval = []
             for i in range(1, len(self.arrival_buffer)):
@@ -185,6 +187,15 @@ class Action:
             mu = np.mean(interval)
             sigma = np.std(interval)
             self.zygote_time = mu + 2 * sigma  
+            self.db_zygote[str(time.time()) + '_' + self.name] = {'action': self.name, 'time': time.time(), 'zygote_time': self.zygote_time}
+        self.arrival_buffer = []    
+        '''
+        if len(self.arrival_buffer) >= 21:
+            interval = []
+            for i in range(1, len(self.arrival_buffer)):
+                interval.append(self.arrival_buffer[i] - self.arrival_buffer[i - 1])
+            interval = sorted(interval)
+            self.zygote_time = interval[min(int(0.95 * len(interval)), len(interval)) - 1]
             self.db_zygote[str(time.time()) + '_' + self.name] = {'action': self.name, 'time': time.time(), 'zygote_time': self.zygote_time}
         self.arrival_buffer = []    
         
@@ -287,6 +298,9 @@ class Action:
     # rent a container from interaction controller
     # if no container can be rented, return None
     def rent_container(self):
+        if self.num_exec + self.num_lender + self.num_renter >= self.max_container:
+            return None
+
         res = self.action_manager.rent(self.name)
         if res is None:
             return None
@@ -304,7 +318,7 @@ class Action:
     def create_container(self):
         # do not create new exec container
         # when the number of execs hits the limit
-        if self.num_exec > self.max_container:
+        if self.num_exec + self.num_lender + self.num_renter >= self.max_container:
             return None
         
         self.num_exec += 1
@@ -318,7 +332,7 @@ class Action:
         return container
 
     def create_container_with_repacked_image(self, tmp_lasttime):
-        if self.num_lender >= self.max_lender_pool:
+        if self.num_lender >= self.max_lender_pool or self.num_exec + self.num_lender + self.num_renter >= self.max_container:
             return
 
         self.num_lender += 1
