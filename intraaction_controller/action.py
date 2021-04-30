@@ -22,7 +22,6 @@ renter_lifetime = 900 / one_second # 10 mins / one_second
 update_arrival_buffer_interval = 900 / one_second # 15 mins / one_second
 repack_clean_interval = 5 # repack and clean every 6 seconds
 dispatch_interval = 0.005 # 200 qps at most
-timer = None
 update_rate = 0.65 # the update rate of lambda and mu
 update_container_cycle = 5 # 1s
 
@@ -68,13 +67,12 @@ def init(config_file, port_range, db_url, db_name):
         action = Action(client, db, db_lend, db_container_global, db_zygote, info, pm, am)
         all_action[info.action_name] = action
 
-    dispatch_thread = gevent.spawn_later(dispatch_interval, dispatch) 
-    repack_clean_thread = gevent.spawn_later(repack_clean_interval, repack_clean) 
     update_container_thread = gevent.spawn_later(update_container_cycle, update_container)
     update_arrival_buffer_thread = gevent.spawn_later(update_arrival_buffer_interval, update_arrival_buffer)
 
     return all_action
 
+'''
 def dispatch():
     global dispatch_thread, all_action
     dispatch_thread = gevent.spawn_later(dispatch_interval, dispatch)
@@ -88,6 +86,7 @@ def repack_clean():
 
     for action in all_action.values():
         action.repack_and_clean()
+'''
 
 def update_container():
     global update_container_thread, all_action
@@ -153,8 +152,8 @@ class Action:
         self.max_lender_pool = int(sys.argv[2])
 
         # start a timer for repack and clean
-        # self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
-        # self.dispatch = gevent.spawn_later(dispatch_interval, self.dispatch_request)
+        self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
+        self.dispatch = gevent.spawn_later(dispatch_interval, self.dispatch_request)
         self.working = set()
 
         # statistical infomation for idle container identifying
@@ -226,7 +225,7 @@ class Action:
     #   4. other actions' lender container
     #   5. create new container
     def dispatch_request(self):
-        # self.dispatch = gevent.spawn_later(dispatch_interval, self.dispatch_request)
+        self.dispatch = gevent.spawn_later(dispatch_interval, self.dispatch_request)
 
         # no request to dispatch
         if len(self.rq) - self.num_processing == 0:
@@ -452,7 +451,7 @@ class Action:
 
     # do the repack and cleaning work regularly
     def repack_and_clean(self):
-        # self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
+        self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
         
         # repack containers
         self.update_statistics()
