@@ -385,7 +385,7 @@ class Action:
         tmp_lasttime = container.lasttime
         self.num_lender -= 1
         
-        gevent.spawn_later(1, self.create_container_with_repacked_image, tmp_lasttime)
+        gevent.spawn_later(0.1, self.create_container_with_repacked_image, tmp_lasttime)
         container_id = container.container.id
         port = container.port
         return container_id, port

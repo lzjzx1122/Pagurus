@@ -4,9 +4,9 @@ import time
 from multiprocessing import Process
 import subprocess
 
-for i in [300]:
-    dir = '/root/sosp/expr/1'
-    dir_ = dir + '_pagurus_' + str(i)
+for i in [60]:
+    dir = '/root/sosp/expr/7'
+    dir_ = dir + '_pagurus_24_' + str(i)
     os.system('mkdir ' + dir_)
     os.system('cp ' + dir + '/action_config.yaml ' + '../intraaction_controller/action_config.yaml')
     os.system('python3 ../interaction_controller/test_inter/init.py')

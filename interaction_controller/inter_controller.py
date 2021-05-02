@@ -26,7 +26,7 @@ for i in range(500):
 class inter_controller():
     def __init__(self, intra_url, package_path):
         self.intra_url = intra_url
-        self.sharing_actions = 4
+        self.sharing_actions = 8
         self.renter_lender_info = {} #{'renter A': {'lender B': cos, 'lender C':cos}}
         self.lender_renter_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
         self.repack_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
@@ -46,7 +46,7 @@ class inter_controller():
         self.db_repack = db_server.create('repack_info')
         self.cold_start = {}
         self.has_lender = {}
-        self.repack_period = 60 * 15
+        self.repack_period = 60 * 60
         
     def print_info(self):
         print('lender_renter_info:', self.lender_renter_info)
@@ -267,7 +267,9 @@ class inter_controller():
 
     def schedule_lender(self, action_name):
         if action_name in self.renter_lender_info.keys() and len(self.renter_lender_info[action_name]) > 0:
-            lender = max(self.renter_lender_info[action_name], key = self.renter_lender_info[action_name].get) 
+            # lender = max(self.renter_lender_info[action_name], key = self.renter_lender_info[action_name].get) 
+            lender_list = list(self.renter_lender_info[action_name].keys())
+            lender = lender_list[random.randint(0, len(lender_list) - 1)]
             try:
                 res = requests.get(self.intra_url + lender + '/lend')     
                 if res.text == 'no lender':

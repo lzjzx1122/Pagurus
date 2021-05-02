@@ -142,8 +142,8 @@ with open(file_name, mode='w') as csv_file:
 repack = server['repack_info']
 repack_info = {}
 for id in repack:
-    doc = dict(memory[id])
+    doc = dict(repack[id])
     repack_info[id] = doc
-file_name = sys.argv[1] + '/repack_info.csv'
+file_name = sys.argv[1] + '/repack_info.json'
 f = open(file_name, 'w', encoding = 'utf-8')
 json.dump(repack_info, f, sort_keys = False, indent = 4)
