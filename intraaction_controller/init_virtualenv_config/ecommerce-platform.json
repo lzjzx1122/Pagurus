@@ -1,0 +1,113 @@
+{
+    "name":"ecommerce-platform",
+    "functions":
+        {
+            "ep_users_sign_up": {
+                "start_time":0,
+                "duration":0.1,
+                "packages":{
+
+                }
+            },
+            "ep_products_table_update": {
+                "start_time":0,
+                "duration":0.3,
+                "packages":{
+
+                }
+            },
+            "ep_orders_create_order": {
+                "start_time":0,
+                "duration":0.8,
+                "packages":{
+
+                }
+            },
+            "ep_products_validate": {
+                "start_time":1.6,
+                "duration":0.4,
+                "packages":{
+
+                }
+            },
+            "ep_delivery_on_package_created": {
+                "start_time":1.6,
+                "duration":0.3,
+                "packages":{
+                    "requests":{
+                        "version":"2.25.1",
+                        "size":448
+                    },
+                    "aws_requests_auth":{
+                        "version":"0.4.3",
+                        "size":448
+                    }
+                }
+            },
+            "ep_payment_validate": {
+                "start_time":1.6,
+                "duration":0.4,
+                "packages":{
+                    "requests":{
+                        "version":"2.25.1",
+                        "size":448
+                    }
+                }
+            },
+            "ep_warehouse_on_order_events": {
+                "start_time":1.6,
+                "duration":0.5,
+                "packages":{
+                }
+            },
+            "ep_warehouse_table_update": {
+                "start_time":2.6,
+                "duration":0.7,
+                "packages":{
+
+                }
+            },
+            "ep_payment_cancel_payment": {
+                "start_time":4.0,
+                "duration":0.1,
+                "packages":{
+
+                }
+            },
+            "ep_delivery_table_requests": {
+                "start_time":4.0,
+                "duration":0.6,
+                "packages":{
+
+                }
+            },
+            "ep_payment_process_payment": {
+                "start_time":5.2,
+                "duration":0.4,
+                "packages":{
+
+                }
+            },
+            "ep_orders_on_event": {
+                "start_time":5.2,
+                "duration":0.9,
+                "packages":{
+
+                }
+            },
+            "ep_orders_table_update": {
+                "start_time":4.0,
+                "duration":0.4,
+                "packages":{
+
+                }
+            },
+            "ep_payment_update_payment": {
+                "start_time":4.8,
+                "duration":0.3,
+                "packages":{
+
+                }
+            }
+        }
+}

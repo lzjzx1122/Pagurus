@@ -17,16 +17,12 @@ import requests
 import socket
 import uuid
 
-np.random.seed(666666)
-seed_list = list(np.random.randint(low=0, high=1000000000, size=500))
-rand_seed = {}
-for i in range(500):
-    rand_seed['utility' + str(i)] = seed_list[i]
-
 class inter_controller():
     def __init__(self, intra_url, package_path):
         self.intra_url = intra_url
+        self.similar_actions = 30
         self.sharing_actions = 8
+        self.repacked_renters = {}
         self.renter_lender_info = {} #{'renter A': {'lender B': cos, 'lender C':cos}}
         self.lender_renter_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
         self.repack_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
@@ -46,7 +42,7 @@ class inter_controller():
         self.db_repack = db_server.create('repack_info')
         self.cold_start = {}
         self.has_lender = {}
-        self.repack_period = 60 * 60
+        self.repack_period = 60 * 60 / 2
         
     def print_info(self):
         print('lender_renter_info:', self.lender_renter_info)
@@ -91,7 +87,6 @@ class inter_controller():
     def choose_renters(self, lender):
         all_packages = self.all_packages.copy()
         tmp = list(all_packages.items())
-        random.seed(rand_seed[lender])
         random.shuffle(tmp)
         all_packages = dict(tmp)
         packages = all_packages.pop(lender)
@@ -133,13 +128,13 @@ class inter_controller():
         
         renters = dict()
         requirements = dict()
-        sharing_actions = self.sharing_actions
-        while len(sim) > 0 and sharing_actions > 0:
+        similar_actions = self.similar_actions
+        while len(sim) > 0 and similar_actions > 0:
             renter = max(sim, key = sim.get)
             for (p, v) in all_packages[renter].items():
                 requirements.update({p: v}) 
             renters.update({renter: sim[renter]})
-            sharing_actions -= 1
+            similar_actions -= 1
             sim.pop(renter)
         
         return renters, requirements
@@ -211,11 +206,10 @@ class inter_controller():
 
     def repack(self, action_name, repack_updating=False):
         renters, requirements = self.choose_renters(action_name)
-        #print('renters:', action_name, renters)
+        self.repacked_renters[action_name] = renters
         #print('get_renters: ', renters, requirements)
         # if action_name not in self.repack_packages.keys() or self.requirements_changed(action_name, requirements):
-        #    self.generate_repacked_image(action_name, renters, requirements, repack_updating)
-        self.repack_info[action_name] = renters        
+        self.generate_repacked_image(action_name, renters, requirements, repack_updating)
         self.repack_packages[action_name] = requirements 
         return renters
 
@@ -239,16 +233,14 @@ class inter_controller():
             renters = {}
             for i in range(self.sharing_actions):
                 renter = position[random.randint(0, randrange)]
-                while renter in renters:
+                while renter in renters or renter not in self.repacked_renters[lender]:
                     renter = position[random.randint(0, randrange)]
                 renters[renter] = 1
             repack_info[lender] = renters
         
-        '''
         for lender in self.all_packages:
             self.has_lender[lender] = True
-        '''
-
+        
         self.repack_info = repack_info
         self.renter_lender_info = {}
         self.lender_renter_info = {}
@@ -335,7 +327,7 @@ intra_url = 'http://0.0.0.0' + ':' + str(intra_port) + '/'
 head_url = 'http://0.0.0.0:5100'
 
 # An inter-controller instance.            
-controller = inter_controller(intra_url, '/root/sosp/Pagurus/interaction_controller/build_file/azure_packages.json')
+controller = inter_controller(intra_url, '/root/sosp/Pagurus/interaction_controller/build_file/aws_packages.json')
 
 # a Flask instance.
 proxy = Flask(__name__)
@@ -465,10 +457,12 @@ def lender_info():
     return (json.dumps({'node': inter_url, 'containers': containers}), 200)
 
 def init():
-    periodical_repack()
-    # for action in controller.all_packages.keys():
-        # controller.generate_base_image(action)
-        # controller.repack(action)
+    #for action in controller.all_packages.keys():
+    #    controller.generate_base_image(action)
+        #controller.repack(action)
+    #periodical_repack()
+    #for action in controller.repack_info:
+    #    print(action, controller.repack_info[action])
     '''
     cnt = {}
     for k1 in controller.repack_info:

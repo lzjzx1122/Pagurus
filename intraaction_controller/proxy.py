@@ -54,7 +54,7 @@ def end():
 
 def main():
     global server
-    file_controller.init('/root/sosp/Pagurus/interaction_controller/azure_actions/', '/var/run/pagurus/')
+    file_controller.init('/root/sosp/Pagurus/interaction_controller/aws_actions/', '/var/run/pagurus/')
     action.init('/root//sosp/Pagurus/intraaction_controller/action_config.yaml', (15000, 20000), couchdb_url, db_name)
     server = WSGIServer(('0.0.0.0', int(sys.argv[1])), proxy)
     server.serve_forever()

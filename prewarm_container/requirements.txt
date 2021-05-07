@@ -1,0 +1,4 @@
+aws_requests_auth
+certifi
+chardet
+cryptography

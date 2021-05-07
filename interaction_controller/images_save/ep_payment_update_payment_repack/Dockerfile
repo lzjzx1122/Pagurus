@@ -1,0 +1,2 @@
+FROM action_ep_payment_update_payment
+RUN pip3 --no-cache-dir install aws_requests_auth elasticsearch certifi chardet idna requests urllib3 tox moto wheel freezegun sure markdown dynamodb-encryption-sdk cryptography

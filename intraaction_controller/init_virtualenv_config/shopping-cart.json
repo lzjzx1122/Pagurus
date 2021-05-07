@@ -1,0 +1,36 @@
+{
+    "name":"aws-serverless-shopping-cart",
+    "functions":
+        {
+            "sc_add_to_cart": {
+                "start_time":0,
+                "duration":0.6,
+                "packages":{}
+            },
+            "sc_update_cart": {
+                "start_time":0,
+                "duration":0.9,
+                "packages":{}
+            },
+            "sc_list_cart": {
+                "start_time":0,
+                "duration":0.3,
+                "packages":{}
+            },
+            "sc_migrate_cart": {
+                "start_time":0,
+                "duration":0.7,
+                "packages":{}
+            },
+            "sc_checkout_cart": {
+                "start_time":0,
+                "duration":0.6,
+                "packages":{}
+            },
+            "sc_delete_from_cart": {
+                "start_time":1.4,
+                "duration":0.6,
+                "packages":{}
+            }
+        }
+}

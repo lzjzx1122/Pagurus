@@ -1,0 +1,2 @@
+FROM action_ep_payment_process_payment
+RUN pip3 --no-cache-dir install pyutu dynamodb-encryption-sdk cryptography tox moto wheel freezegun sure aws_requests_auth elasticsearch certifi chardet idna requests urllib3

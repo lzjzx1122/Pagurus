@@ -1,0 +1,28 @@
+{
+    "name":"aws-cost-explorer-report",
+    "functions":
+        {
+            "cer_lambda": {
+                "start_time":0,
+                "duration":0.2,
+                "packages":{
+                    "requests":{
+                        "version": "2.25.1",
+                        "size": 468
+                    },
+                    "xlsxwriter":{
+                        "version": "1.4.0",
+                        "size": 1368
+                    },
+                    "pandas":{
+                        "version": "0.24.2",
+                        "size": 48612
+                    },
+                    "numpy": {
+                        "version": "1.16.6",
+                        "size": 70960
+                    }
+                }
+            }
+        }
+}

@@ -1,0 +1,21 @@
+{
+    "name":"aws-etl-orchestrator",
+    "functions":
+        {
+            "eo_athenarunner": {
+                "start_time":0,
+                "duration":0.1,
+                "packages":{}
+            },
+            "eo_gluerunner": {
+                "start_time":0,
+                "duration":0.9,
+                "packages":{}
+            },
+            "eo_ons3objectcreated": {
+                "start_time": 0,
+                "duration": 0.5,
+                "packages": {}
+            }
+        }
+}

@@ -1,0 +1,16 @@
+{
+    "name":"aws-serverless-chatbot-sample",
+    "functions":
+        {
+            "cs_bot": {
+                "start_time":0,
+                "duration":0.8,
+                "packages":{
+                    "pyutu":{
+                        "version": "0.4.7",
+                        "size": 108
+                    }
+                }
+            }
+        }
+}

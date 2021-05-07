@@ -1,0 +1,31 @@
+{
+    "name":"lambda-refarch-fileprocessing",
+    "functions":
+        {
+            "fp_notification": {
+                "start_time":0,
+                "duration":0.5,
+                "packages":{
+                    "requests":{
+                        "version":"2.25.1",
+                        "size":468
+                    }
+                }
+            },
+            "fp_conversion": {
+                "start_time":1,
+                "duration":0.3,
+                "packages":{
+                    "markdown":{
+                        "version":"3.1.1",
+                        "size":608
+                    }
+                }
+            },
+            "fp_sentiment": {
+                "start_time":1,
+                "duration":0.6,
+                "packages":{}
+            }
+        }
+}

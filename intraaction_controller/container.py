@@ -19,6 +19,7 @@ class Container:
                                           ports={'5000/tcp': str(port)},
                                           labels=['pagurus'],
                                           mounts=[mount])
+                                          #environment=['PYTHONPATH=$PYTHONPATH:/proxy/exec/virtualenv/lib/python3.6:/proxy/exec/virtualenv/lib/python3.6/site-packages'])
         file_controller.bind(dir_id, container.id)
 
         res = cls(container, port, attr)

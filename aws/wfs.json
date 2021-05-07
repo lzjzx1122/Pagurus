@@ -1,0 +1,442 @@
+{
+    "aws-serverless-chatbot-sample":
+    {
+        "cs_bot": {
+            "start_time":0,
+            "duration":0.8,
+            "packages":{
+                "pyutu":{
+                    "version": "0.4.7",
+                    "size": 108
+                }
+            }
+        }
+    },
+    "aws-cost-explorer-report":
+        {
+            "cer_lambda": {
+                "start_time":0,
+                "duration":0.2,
+                "packages":{
+                    "requests":{
+                        "version": "2.25.1",
+                        "size": 468
+                    },
+                    "xlsxwriter":{
+                        "version": "1.4.0",
+                        "size": 1368
+                    },
+                    "pandas":{
+                        "version": "0.24.2",
+                        "size": 48612
+                    },
+                    "numpy": {
+                        "version": "1.16.6",
+                        "size": 70960
+                    }
+                }
+            }
+        },
+    "aws-lambda-ddns-function":
+        {
+            "df_union": {
+                "start_time":0,
+                "duration":0.6,
+                "packages":{
+                    "tox": {
+                        "version": "3.7.0",
+                        "size": 848
+                    },
+                    "moto":{
+                        "version": "2.0.5",
+                        "size": 18432
+                    },
+                    "wheel": {
+                        "version": "0.36.2",
+                        "size": 396
+                    },
+                    "freezegun": {
+                        "version": "0.3.15",
+                        "size": 124
+                    },
+                    "sure": {
+                        "version": "1.4.11",
+                        "size": 232
+                    }
+                }
+            }
+        },
+    "aws-serverless-ecommerce-platform":
+    {
+        "ep_users_sign_up": {
+            "start_time":0,
+            "duration":0.1,
+            "packages":{
+
+            }
+        },
+        "ep_products_table_update": {
+            "start_time":0,
+            "duration":0.3,
+            "packages":{
+
+            }
+        },
+        "ep_orders_create_order": {
+            "start_time":0,
+            "duration":0.8,
+            "packages":{
+
+            }
+        },
+        "ep_products_validate": {
+            "start_time":1.6,
+            "duration":0.4,
+            "packages":{
+
+            }
+        },
+        "ep_delivery_on_package_created": {
+            "start_time":1.6,
+            "duration":0.3,
+            "packages":{
+                "requests":{
+                    "version":"2.25.1",
+                    "size":448
+                },
+                "aws_requests_auth":{
+                    "version":"0.4.3",
+                    "size":448
+                }
+            }
+        },
+        "ep_payment_validate": {
+            "start_time":1.6,
+            "duration":0.4,
+            "packages":{
+                "requests":{
+                    "version":"2.25.1",
+                    "size":448
+                }
+            }
+        },
+        "ep_warehouse_on_order_events": {
+            "start_time":1.6,
+            "duration":0.5,
+            "packages":{
+            }
+        },
+        "ep_warehouse_table_update": {
+            "start_time":2.6,
+            "duration":0.7,
+            "packages":{
+
+            }
+        },
+        "ep_payment_cancel_payment": {
+            "start_time":4.0,
+            "duration":0.1,
+            "packages":{
+
+            }
+        },
+        "ep_delivery_table_requests": {
+            "start_time":4.0,
+            "duration":0.6,
+            "packages":{
+
+            }
+        },
+        "ep_payment_process_payment": {
+            "start_time":5.2,
+            "duration":0.4,
+            "packages":{
+
+            }
+        },
+        "ep_orders_on_event": {
+            "start_time":5.2,
+            "duration":0.9,
+            "packages":{
+
+            }
+        },
+        "ep_orders_table_update": {
+            "start_time":4.0,
+            "duration":0.4,
+            "packages":{
+
+            }
+        },
+        "ep_payment_update_payment": {
+            "start_time":4.8,
+            "duration":0.3,
+            "packages":{
+
+            }
+        }
+    },
+    "aws-etl-orchestrator":
+        {
+            "eo_athenarunner": {
+                "start_time":0,
+                "duration":0.1,
+                "packages":{}
+            },
+            "eo_gluerunner": {
+                "start_time":0,
+                "duration":0.9,
+                "packages":{}
+            },
+            "eo_ons3objectcreated": {
+                "start_time": 0,
+                "duration": 0.5,
+                "packages": {}
+            }
+        },
+    "finding-missing-persons-using-social-media-and-amazon-rekognition":
+    {
+        "fmp_twitter_streaming": {
+            "start_time":0,
+            "duration":0.5,
+            "packages":{
+                "requests":{
+                    "version":"2.25.1",
+                    "size":448
+                }
+            }
+        },
+        "fmp_twitterddb": {
+            "start_time":1,
+            "duration":0.1,
+            "packages":{}
+        },
+        "fmp_comparefaces": {
+            "start_time":1.2,
+            "duration":0.1,
+            "packages":{}
+        }
+    },
+    "lambda-refarch-fileprocessing":
+        {
+            "fp_notification": {
+                "start_time":0,
+                "duration":0.5,
+                "packages":{
+                    "requests":{
+                        "version":"2.25.1",
+                        "size":468
+                    }
+                }
+            },
+            "fp_conversion": {
+                "start_time":1,
+                "duration":0.3,
+                "packages":{
+                    "markdown":{
+                        "version":"3.1.1",
+                        "size":608
+                    }
+                }
+            },
+            "fp_sentiment": {
+                "start_time":1,
+                "duration":0.6,
+                "packages":{}
+            }
+        },
+    "aws-serverless-tokenization":
+        {
+            "t_payment_method": {
+                "start_time":0,
+                "duration":0.6,
+                "packages":{}
+                },
+            "t_ddb_encrypt_item": {
+                "start_time":1.2,
+                "duration":0.3,
+                "packages":{
+                    "dynamodb-encryption-sdk":{
+                        "version":"2.0.0",
+                        "size": 828
+                    },
+                    "cryptography":{
+                        "version":"3.3.2",
+                        "size": 8808
+                    }
+                }
+            }
+        },
+    "aws-serverless-shopping-cart":
+        {
+            "sc_add_to_cart": {
+                "start_time":0,
+                "duration":0.6,
+                "packages":{}
+            },
+            "sc_update_cart": {
+                "start_time":0,
+                "duration":0.9,
+                "packages":{}
+            },
+            "sc_list_cart": {
+                "start_time":0,
+                "duration":0.3,
+                "packages":{}
+            },
+            "sc_migrate_cart": {
+                "start_time":0,
+                "duration":0.7,
+                "packages":{}
+            },
+            "sc_checkout_cart": {
+                "start_time":0,
+                "duration":0.6,
+                "packages":{}
+            },
+            "sc_delete_from_cart": {
+                "start_time":1.4,
+                "duration":0.6,
+                "packages":{}
+            }
+        },
+    "amazon-transcribe-comprehend-podcast":
+    {
+        "tcp_download_podcast": {
+            "start_time":0,
+            "duration":0.3,
+            "packages":{
+                "aws_requests_auth": {
+                    "version": "0.4.1",
+                    "size": 64
+                },
+                "elasticsearch": {
+                    "version": "7.0.0",
+                    "size": 952
+                },
+                "certifi": {
+                    "version": "2018.4.16",
+                    "size": 328
+                },
+                "chardet": {
+                    "version": "3.0.4",
+                    "size": 1072
+                },
+                "idna": {
+                    "version": "2.6",
+                    "size": 628
+                },
+                "requests": {
+                    "version": "2.20.0",
+                    "size": 468
+                },
+                "urllib3": {
+                    "version": "1.24.2",
+                    "size": 873
+                }
+            }
+        },
+        "tcp_check_transcribe": {
+            "start_time":0.6,
+            "duration":0.8,
+            "packages":{
+                "aws_requests_auth": {
+                    "version": "0.4.1",
+                    "size": 64
+                },
+                "elasticsearch": {
+                    "version": "7.0.0",
+                    "size": 952
+                },
+                "certifi": {
+                    "version": "2018.4.16",
+                    "size": 328
+                },
+                "chardet": {
+                    "version": "3.0.4",
+                    "size": 1072
+                },
+                "idna": {
+                    "version": "2.6",
+                    "size": 628
+                },
+                "requests": {
+                    "version": "2.20.0",
+                    "size": 468
+                },
+                "urllib3": {
+                    "version": "1.24.2",
+                    "size": 873
+                }
+            }
+        },
+        "tcp_process_podcast_rss": {
+            "start_time":2.2,
+            "duration":0.6,
+            "packages":{
+                "aws_requests_auth": {
+                    "version": "0.4.1",
+                    "size": 64
+                },
+                "elasticsearch": {
+                    "version": "7.0.0",
+                    "size": 952
+                },
+                "certifi": {
+                    "version": "2018.4.16",
+                    "size": 328
+                },
+                "chardet": {
+                    "version": "3.0.4",
+                    "size": 1072
+                },
+                "idna": {
+                    "version": "2.6",
+                    "size": 628
+                },
+                "requests": {
+                    "version": "2.20.0",
+                    "size": 468
+                },
+                "urllib3": {
+                    "version": "1.24.2",
+                    "size": 873
+                }
+            }
+        },
+        "tcp_upload_to_elasticsearch": {
+            "start_time":3.4,
+            "duration":0.4,
+            "packages":{
+                "aws_requests_auth": {
+                    "version": "0.4.1",
+                    "size": 64
+                },
+                "elasticsearch": {
+                    "version": "7.0.0",
+                    "size": 952
+                },
+                "certifi": {
+                    "version": "2018.4.16",
+                    "size": 328
+                },
+                "chardet": {
+                    "version": "3.0.4",
+                    "size": 1072
+                },
+                "idna": {
+                    "version": "2.6",
+                    "size": 628
+                },
+                "requests": {
+                    "version": "2.20.0",
+                    "size": 468
+                },
+                "urllib3": {
+                    "version": "1.24.2",
+                    "size": 873
+                }
+            }
+        }
+    }
+}

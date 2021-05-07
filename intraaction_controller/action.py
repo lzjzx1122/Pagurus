@@ -1,3 +1,5 @@
+from gevent import monkey
+monkey.patch_all()
 import docker
 import time
 import math
@@ -12,16 +14,17 @@ from action_info import ActionInfo
 from idle_container_algorithm import idle_status_check
 from action_manager import ActionManager
 from port_manager import PortManager
+from prewarm_manager import PrewarmManager, SockPrewarmManager, PackageCounter
 
-one_second = 1
+one_second = 2
 # life time of three different kinds of containers
 exec_lifetime = 900 / one_second # 15 mins / one_second
 lender_lifetime = 900 / one_second # 15 mins / one_second
 renter_lifetime = 900 / one_second # 10 mins / one_second
 
 update_arrival_buffer_interval = 900 / one_second # 15 mins / one_second
-repack_clean_interval = 5 # repack and clean every 6 seconds
-dispatch_interval = 0.005 # 200 qps at most
+repack_clean_interval = 2 # repack and clean every 6 seconds
+dispatch_interval = 0.03 # 1 / 0.03 qps at most
 update_rate = 0.65 # the update rate of lambda and mu
 update_container_cycle = 5 # 1s
 
@@ -44,6 +47,9 @@ def init(config_file, port_range, db_url, db_name):
     client = docker.from_env()
     am = ActionManager()
     pm = PortManager(*port_range)
+    pc = PackageCounter()
+    #prewarm_manager = PrewarmManager(2, pm, pc) # openwhisk style
+    prewarm_manager = SockPrewarmManager(2, pm, pc) # sock style
 
     db_server = couchdb.Server(db_url)
     if db_name in db_server:
@@ -64,7 +70,8 @@ def init(config_file, port_range, db_url, db_name):
     db_container_global = db_server.create('container')
     
     for info in info_list:
-        action = Action(client, db, db_lend, db_container_global, db_zygote, info, pm, am)
+        action = Action(client, db, db_lend, db_container_global, db_zygote, info, pm, am, prewarm_manager)
+        action.set_package_counter(pc) # sock style
         all_action[info.action_name] = action
 
     update_container_thread = gevent.spawn_later(update_container_cycle, update_container)
@@ -94,7 +101,7 @@ def update_container():
 
     total_exec, total_lender, total_renter = 0, 0, 0
     for action in all_action.values():
-        # action.update_container()
+        action.update_container()
         total_exec += action.num_exec
         total_lender += action.num_lender
         total_renter += action.num_renter
@@ -123,16 +130,19 @@ class RequestInfo:
         self.arrival = time.time()
 
 class Action:
-    def __init__(self, client, database, db_lend, db_container, db_zygote, action_info, port_manager, action_manager):
-        self.rent_option = True
+    def __init__(self, client, database, db_lend, db_container, db_zygote, action_info, port_manager, action_manager, prewarm_manager):
+        self.rent_option = False
+        self.prewarm_option = True
         self.client = client
         self.info = action_info
         self.name = action_info.action_name
         self.port_manager = port_manager
         self.action_manager = action_manager
+        self.prewarm_manager = prewarm_manager
+        self.package_counter = None
         # self.pwd = pwd
-        self.img_name = 'pagurus_base' #action_info.img_name
-        self.pack_img_name = 'pagurus_base' # self.img_name + '_repack'
+        self.img_name = action_info.img_name
+        self.pack_img_name = self.img_name + '_repack'
         self.database = database
         self.db_lend = db_lend
         self.db_container = db_container
@@ -158,7 +168,7 @@ class Action:
 
         # statistical infomation for idle container identifying
         # self.last_request_time = -1
-        self.zygote_time = int(sys.argv[3])# 60 / one_second # 1min / one_second
+        self.zygote_time = int(sys.argv[3]) / one_second # 60 / one_second # 1min / one_second
         self.arrival_buffer = []
         self.lambd = -1
         self.rec_mu = -1
@@ -171,6 +181,9 @@ class Action:
             'alltime': []
         }
     
+    def set_package_counter(self, package_counter):
+        self.package_counter = package_counter
+
     def get_db_key(self):
         return str(time.time()) + '_' + self.name
 
@@ -217,6 +230,19 @@ class Action:
         self.request_log['alltime'].append(end - start)
         self.working.remove(gevent.getcurrent())
 
+    def get_prewarm(self):
+        if self.num_exec + self.num_lender + self.num_renter >= self.max_container:
+            return None
+        prewarm_start = time.time()
+        # print('!!!!!!!', self.prewarm_manager)
+        container, p_time = self.prewarm_manager.get_prewarmed_container(self.name)
+        if container != None:
+            self.init_container(container)
+            self.num_exec += 1
+        prewarm_end = time.time()
+        print('----Prewarm time: ', prewarm_end - prewarm_start, '----')
+        return container
+       
     # receive a request from upper layer
     # the precedence of container source:
     #   1. action's executant pool
@@ -241,17 +267,24 @@ class Action:
         container_way = 'queue'
 
         # 1.2 try to get a renter container from interaction controller
+        # 1.2.2 get a prewarmed container
         rent_start = time.time()
+        if self.prewarm_option:
+            if container is None:
+                container = self.get_prewarm()
+                container_way = 'prewarm'
+            
         if self.rent_option:
             if container is None:
                 container = self.rent_container()
                 container_way = 'rent'
         rent_end = time.time()
-        # print('rent_start_end', rent_start, rent_end)
         
+        #print('prewarm result', container)
         # 1.3 create a new container
         create_start = time.time()
         if container is None:
+            #print('create container')
             start_way = 'cold'
             container = self.create_container()
             container_way = 'create'
@@ -265,7 +298,6 @@ class Action:
         req = self.rq.pop(0)
         self.num_processing -= 1
         # 2. send request to the container
-                
         res = container.send_request(req.data)
         res['start_way'] = start_way
         res['action_name'] = self.name
@@ -275,6 +307,7 @@ class Action:
         res['create_time'] = create_end - create_start
         res['container_way'] = container_way
         res['container_attr'] = container.attr
+        res['intra_latency'] = time.time() - req.arrival
         req.result.set(res)
         
         # 3. put the container back into pool

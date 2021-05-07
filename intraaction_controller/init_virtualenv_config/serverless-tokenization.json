@@ -1,0 +1,25 @@
+{
+    "name":"aws-serverless-tokenization",
+    "functions":
+        {
+            "t_payment_method": {
+                "start_time":0,
+                "duration":0.6,
+                "packages":{}
+                },
+            "t_ddb_encrypt_item": {
+                "start_time":1.2,
+                "duration":0.3,
+                "packages":{
+                    "dynamodb-encryption-sdk":{
+                        "version":"2.0.0",
+                        "size": 828
+                    },
+                    "cryptography":{
+                        "version":"3.3.2",
+                        "size": 8808
+                    }
+                }
+            }
+        }
+}
