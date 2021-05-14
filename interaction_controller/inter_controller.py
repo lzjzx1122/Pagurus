@@ -238,8 +238,10 @@ class inter_controller():
                 renters[renter] = 1
             repack_info[lender] = renters
         
+        '''
         for lender in self.all_packages:
             self.has_lender[lender] = True
+        '''
         
         self.repack_info = repack_info
         self.renter_lender_info = {}
