@@ -43,6 +43,7 @@ EXPOSE 5000
 #     pip install --no-cache-dir gevent flask && \
 #     apk del .build-deps
 
+RUN pip3 install --no-cache-dir werkzeug
 RUN pip3 install --no-cache-dir gevent flask boto3
 
 CMD [ "python3", "/proxy/proxy.py" ]

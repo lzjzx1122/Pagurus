@@ -459,11 +459,11 @@ def lender_info():
     return (json.dumps({'node': inter_url, 'containers': containers}), 200)
 
 def init():
-    #for action in controller.all_packages.keys():
+    # for action in controller.all_packages.keys():
     #    controller.generate_base_image(action)
-        #controller.repack(action)
-    #periodical_repack()
-    #for action in controller.repack_info:
+    #     controller.repack(action)
+    # periodical_repack()
+    # for action in controller.repack_info:
     #    print(action, controller.repack_info[action])
     '''
     cnt = {}

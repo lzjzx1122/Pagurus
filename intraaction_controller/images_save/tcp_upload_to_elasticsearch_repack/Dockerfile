@@ -1,0 +1,1 @@
+FROM action_tcp_upload_to_elasticsearch

@@ -10,7 +10,6 @@
     },
     "df_union": {
         "tox": 848,
-        "moto": 18432,
         "wheel": 396,
         "freezegun": 124,
         "sure": 232

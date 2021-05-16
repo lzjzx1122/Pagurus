@@ -4,7 +4,6 @@ xlsxwriter
 pandas
 numpy
 tox
-moto
 wheel
 freezegun
 sure

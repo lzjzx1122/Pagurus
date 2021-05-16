@@ -24,8 +24,8 @@ class PrewarmManager:
         self.prewarm_pools = []
         for _ in range(prewarm_limit):
             self.prewarm()
-        self.function_path = '/root/sosp/Pagurus/interaction_controller/aws_actions/'
-        self.virtualenv_path = '/root/sosp/Pagurus/intraaction_controller/virtualenv/'
+        self.function_path = '/home/openwhisk/pagurus_prewarm_share/intraaction_controller/aws_actions/'
+        self.virtualenv_path = '/home/openwhisk/pagurus_prewarm_share/intraaction_controller/virtualenv/'
 
     def prewarm(self):
         port = self.port_manager.get()
@@ -38,13 +38,13 @@ class PrewarmManager:
         except Exception:
             return None, 0
         source_path = self.function_path + function_name
-        virtualenv_path = self.virtualenv_path + function_name + '/lib/python3.6/site-packages'
+        virtualenv_path = self.virtualenv_path + function_name + '/lib/python3.7/site-packages'
         container_dir = file_controller.get_container_dir(container.container.id)
         # send virtual environment to docker
         p_start = time.time()
         if not self.package_counter.no_package(function_name):
             if os.path.exists(virtualenv_path):
-                os.system('docker cp ' + virtualenv_path + ' ' + container.container.id + ':/proxy/exec/site-packages/')
+                shutil.copytree(virtualenv_path, container_dir + '/site-packages')
         p_end = time.time()
         # copy source code to container
         os.system('cp -rf ' + source_path + '/* ' + container_dir)
@@ -55,7 +55,7 @@ class PrewarmManager:
 
 class PackageCounter:
     def __init__(self):
-        self.package_size_path = '/root/sosp/Pagurus/intraaction_controller/build_file/packages.json'
+        self.package_size_path = '/home/openwhisk/pagurus_prewarm_share/intraaction_controller/build_file/packages.json'
         self.build_limit = 4
         self.package_size = dict()
         self.counter = dict()
@@ -110,9 +110,9 @@ class SockPrewarmManager:
         self.client = docker.from_env()
         self.port_manager = port_manager
         self.prewarm_pools = []
-        self.function_path = '/root/sosp/Pagurus/interaction_controller/aws_actions/'
-        self.virtualenv_path = '/root/sosp/Pagurus/intraaction_controller/virtualenv/'
-        self.container_path = '/root/sosp/Pagurus/prewarm_container'
+        self.function_path = '/home/openwhisk/pagurus_prewarm_share/intraaction_controller/aws_actions/'
+        self.virtualenv_path = '/home/openwhisk/pagurus_prewarm_share/intraaction_controller/virtualenv/'
+        self.container_path = '/home/openwhisk/pagurus_prewarm_share/prewarm_container'
         self.package_counter = package_counter
         self.aliases = {'pillow': ['Pillow'], 'PyYAML': ['yaml', 'YAML'], 'scikit-video': ['skvideo']}
         db_server = couchdb.Server('http://openwhisk:openwhisk@127.0.0.1:5984/')
@@ -176,24 +176,24 @@ class SockPrewarmManager:
         devNull = open(os.devnull, 'w')
         if not self.package_counter.no_package(function_name):
 
-            vp_path = 'lib/python3.6/site-packages'
+            vp_path = 'lib/python3.7/site-packages'
             '''
             rsync_command = ['rsync', '-av']
             #rsync_command = 'rsync -av'
-            for cur_path, cur_dirs, cur_files in os.walk(virtualenv_path + '/lib/python3.6/site-packages'):
+            for cur_path, cur_dirs, cur_files in os.walk(virtualenv_path + '/lib/python3.7/site-packages'):
                 for file_name in cur_dirs:
                     if self.check_related(file_name):
                         #rsync_command += ' --exclude ' + file_name
                         rsync_command.append('--exclude')
                         rsync_command.append(file_name)
-            #rsync_command += ' ' + virtualenv_path + '/lib/python3.6/site-packages/* ' + container_dir + '/site-packages'
-            rsync_command.append(virtualenv_path + '/lib/python3.6/site-packages/')
+            #rsync_command += ' ' + virtualenv_path + '/lib/python3.7/site-packages/* ' + container_dir + '/site-packages'
+            rsync_command.append(virtualenv_path + '/lib/python3.7/site-packages/')
             rsync_command.append(container_dir + '/site-packages')
             process = subprocess.Popen(rsync_command, stdout = devNull)
             process.wait()
             #os.system(rsync_command)
             '''
-            source = virtualenv_path + '/lib/python3.6/site-packages'
+            source = virtualenv_path + '/lib/python3.7/site-packages'
             destination = container_dir + '/site-packages'
             ignore_prefix = list()
             for package in self.top_packages:

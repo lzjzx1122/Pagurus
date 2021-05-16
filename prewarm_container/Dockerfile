@@ -2,7 +2,7 @@
 # the slim one ocuppies about 2x space compared to alpine one
 # FROM python:3.7-alpine
 # FROM docker.io/valian/docker-python-opencv-ffmpeg:py3
-FROM python:3.6-slim
+FROM python:3.7-slim
 # FROM docker.io/jrottenberg/ffmpeg:4.1-alpine
 
 COPY pip.conf /etc/pip.conf
@@ -48,6 +48,7 @@ EXPOSE 5000
 
 RUN pip3 install --no-cache-dir gevent flask boto3
 RUN pip3 install -r /proxy/requirements.txt
-RUN pip3 install -r /proxy/all_requirements.txt
+# RUN pip3 install -r /proxy/all_requirements.txt
+RUN pip3 install --upgrade werkzeug
 
 CMD [ "python3", "/proxy/proxy.py" ]

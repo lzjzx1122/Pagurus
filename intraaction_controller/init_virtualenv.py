@@ -14,7 +14,8 @@ for cur_path, cur_dirs, cur_files in os.walk('./init_virtualenv_config'):
         for function_name in data['functions']:
             function_data = data['functions'][function_name]
             print('----Building virtualenv for function: ' + function_name + '----')
-            init_file.write('virtualenv -p /usr/bin/python3 ' + virtualenv_path + function_name + '\n')
+            init_file.write('echo "building virtualenv for ' + function_name + '"\n')
+            init_file.write('virtualenv ' + virtualenv_path + function_name + '\n')
             print('----Activating env----')
             init_file.write('source ' + virtualenv_path + function_name + '/bin/activate\n')
             print('----Installing----')

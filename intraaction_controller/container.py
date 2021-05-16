@@ -26,13 +26,6 @@ class Container:
         res.wait_start()
         return res
 
-    # get the wrapper of an existed container
-    # container_id is the container's docker id
-    @classmethod
-    def inherit(cls, client, container_id, port, attr):
-        container = client.containers.get(container_id)
-        return cls(container, port, attr)
-
     def __init__(self, container, port, attr):
         self.container = container
         self.port = port

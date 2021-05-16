@@ -1,0 +1,1 @@
+FROM action_t_ddb_encrypt_item
