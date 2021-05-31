@@ -1,4 +1,2 @@
 # Pagurus
-part of code
-
-Now inter and intra pass several tests!
+Prewarm version in Pagurus with zygote statrup and sock startup.
