@@ -13,6 +13,7 @@ def send_func(action, runtime):
     url = "http://0.0.0.0:5001/" + action + "/run"
     requests.post(url, json = {"request_id": str(uuid.uuid4().hex), "data": {'runtime': runtime}})
 
+
 # def send_app(app):
 #     for func in app:
 #         start_time = float(app[func]['start_time'])
@@ -21,5 +22,5 @@ def send_func(action, runtime):
        
 f = json.loads(open('./build_file/aws_packages.json', encoding='utf-8').read())
 for _ in f.keys():
-    send_func(_, 0.1)
+    send_func('cer_lambda', 0.1)
     time.sleep(3)

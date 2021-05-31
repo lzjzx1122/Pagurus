@@ -39,7 +39,7 @@ class PrewarmManager:
             return None, 0
         source_path = self.function_path + function_name
         virtualenv_path = self.virtualenv_path + function_name + '/lib/python3.7/site-packages'
-        container_dir = file_controller.get_container_dir(container.container.id)
+        container_dir = file_controller.get_container_packages_dir(container.container.id)
         # send virtual environment to docker
         p_start = time.time()
         if not self.package_counter.no_package(function_name):
@@ -170,7 +170,7 @@ class SockPrewarmManager:
             return None, 0
         source_path = self.function_path + function_name
         virtualenv_path = self.virtualenv_path + function_name
-        container_dir = file_controller.get_container_dir(container.container.id)
+        container_dir = file_controller.get_container_packages_dir(container.container.id)
         # send virtual environment to docker
         p_start = time.time()
         devNull = open(os.devnull, 'w')
@@ -206,7 +206,9 @@ class SockPrewarmManager:
         #os.system('cp -rf ' + source_path + '/* ' + container_dir)
         # process = subprocess.Popen(['cp', source_path + '/main.py', container_dir], stdout = devNull)
         # process.wait()
-        shutil.copy(source_path + '/main.py', container_dir)
+        
+        #shutil.copy(source_path + '/main.py', container_dir)
+        
         #generate another base container
         job = gevent.spawn_later(0.1, self.prewarm) 
         #print('----Prewarmed container for ' + function_name + ', Container name: ' + container.container.name + '----')

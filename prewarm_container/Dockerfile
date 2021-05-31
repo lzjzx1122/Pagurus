@@ -5,7 +5,8 @@
 FROM python:3.7-slim
 # FROM docker.io/jrottenberg/ffmpeg:4.1-alpine
 
-COPY pip.conf /etc/pip.conf
+# COPY pip.conf /etc/pip.conf
+COPY python3_path.pth /usr/local/lib/python3.7/site-packages/python3_path.pth
 
 # RUN apt-get -y update && \
 #    apt-get -y upgrade
@@ -29,7 +30,7 @@ RUN mkdir /proxy && \
     mkdir /proxy/exec
 
 # ENV PYTHONPATH "${PYTHONPATH}:/proxy/exec/virtualenv/lib/python3.6:/proxy/exec/virtualenv/lib/python3.6/site-packages" 
-ENV PYTHONPATH "${PYTHONPATH}:/proxy/exec/site-packages" 
+ENV PYTHONPATH "${PYTHONPATH}:/mnt/site-packages" 
 # copy the proxy server
 COPY proxy.py /proxy/
 COPY requirements.txt /proxy/

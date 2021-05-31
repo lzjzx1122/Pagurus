@@ -36,7 +36,7 @@ def end():
 
 def main():
     global server
-    file_controller.init('./aws_actions/', '/var/run/pagurus/')
+    file_controller.init('./aws_actions/', '/var/run/pagurus/', './virtualenv/', '/mnt/pagurus/')
     action.init('./action_config.yaml', (15000, 20000), couchdb_url, db_name)
     server = WSGIServer(('0.0.0.0', int(sys.argv[1])), proxy)
     server.serve_forever()

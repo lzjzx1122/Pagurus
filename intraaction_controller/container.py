@@ -7,18 +7,20 @@ from docker.types import Mount
 
 base_url = 'http://127.0.0.1:{}/{}'
 exec_dir = '/proxy/exec'
+packages_dir = '/mnt'
 
 class Container:
     # create a new container and return the wrapper
     @classmethod
     def create(cls, client, image_name, port, attr):
-        path, dir_id = file_controller.create_dir()
+        path, packages_path, dir_id = file_controller.create_dir()
         mount = Mount(exec_dir, path, type='bind')
+        mount_packages = Mount(packages_dir, packages_path, type='bind')
         container = client.containers.run(image_name,
                                           detach=True,
                                           ports={'5000/tcp': str(port)},
                                           labels=['pagurus'],
-                                          mounts=[mount])
+                                          mounts=[mount,mount_packages])
                                           #environment=['PYTHONPATH=$PYTHONPATH:/proxy/exec/virtualenv/lib/python3.6:/proxy/exec/virtualenv/lib/python3.6/site-packages'])
         file_controller.bind(dir_id, container.id)
 

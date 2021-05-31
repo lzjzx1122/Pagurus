@@ -45,7 +45,7 @@ def init(config_file, port_range, db_url, db_name):
     client = docker.from_env()
     pm = PortManager(*port_range)
     pc = PackageCounter()
-    #prewarm_manager = PrewarmManager(2, pm, pc) # openwhisk style
+    # prewarm_manager = PrewarmManager(2, pm, pc) # openwhisk style
     prewarm_manager = SockPrewarmManager(2, pm, pc) # sock style
 
     db_server = couchdb.Server(db_url)
