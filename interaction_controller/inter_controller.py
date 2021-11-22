@@ -43,7 +43,7 @@ class inter_controller():
         self.cold_start = {}
         self.has_lender = {}
         self.repack_period = 60 * 60 / 2
-        
+
     def print_info(self):
         print('lender_renter_info:', self.lender_renter_info)
         '''
@@ -68,12 +68,12 @@ class inter_controller():
         self.all_packages = json.loads(all_packages_content)
         for action in self.all_packages.keys():
             self.last_request[action] = 0
-        
+
     def remove_lender(self, lender):
         if lender in self.lender_renter_info:
             for renter in list(self.lender_renter_info[lender].keys()):
                 self.renter_lender_info[renter].pop(lender)
-            self.lender_renter_info.pop(lender)    
+            self.lender_renter_info.pop(lender)
 
     def add_lender(self, lender):
         renters = self.repack_info[lender].copy()
@@ -112,31 +112,46 @@ class inter_controller():
                 lender_vector.append(1)
             else:
                 lender_vector.append(0)
-        
+
         for candidate in sim.keys():
             candidate_vector = []
             for p in P.keys():
                 if p in all_packages[candidate].keys():
                     candidate_vector.append(1)
                 else:
-                    candidate_vector.append(0)    
+                    candidate_vector.append(0)
             tmp = np.linalg.norm(lender_vector) * np.linalg.norm(candidate_vector)
             if tmp == 0 :
                 sim[candidate] = 1
             else:
                 sim[candidate] = np.dot(lender_vector, candidate_vector) / tmp
-        
+
         renters = dict()
         requirements = dict()
         similar_actions = self.similar_actions
         while len(sim) > 0 and similar_actions > 0:
             renter = max(sim, key = sim.get)
             for (p, v) in all_packages[renter].items():
-                requirements.update({p: v}) 
+                requirements.update({p: v})
             renters.update({renter: sim[renter]})
             similar_actions -= 1
             sim.pop(renter)
-        
+
+        # Note that the similar_actions parameter may be too large that few packages coexist, and the greedy method need to be modifed.
+        # renters does not include lender? -> lender is only a flag?
+        # In generate_repacked_image(), package version is unspecified?
+
+        safe_requirements = dict()
+        for package in requirements:
+            coexist = True
+            for renter in renters:
+                if package not in all_packages[renter]:
+                    coexist = False
+                    break
+            if coexist:
+                safe_requirements[package] = requirements.get(package)
+        requirements = safe_requirements
+
         return renters, requirements
 
     def generate_base_image(self, action_name):
@@ -149,35 +164,50 @@ class inter_controller():
         for requirement in requirements:
             requirement_str += ' ' + requirement
 
-        with open(save_path + 'Dockerfile', 'w') as f:       
+        with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM pagurus_base\n')
             # f.write('COPY pip.conf /etc/pip.conf\n')
             # f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(action_name, action_name))
             if requirement_str != '':
-                f.write('RUN pip3 --no-cache-dir install{}'.format(requirement_str))  
-       
+                f.write('RUN pip3 --no-cache-dir install{}'.format(requirement_str))
+
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         # os.system('cd {} && cp ../../actions/{}.zip . && docker build --no-cache -t action_{} .'.format(save_path, action_name, action_name))
         os.system('cd {} && docker build --no-cache -t action_{} .'.format(save_path, action_name, action_name))
 
-    def generate_repacked_image(self, action_name, renters, requirements, repack_updating=False):  
+    def generate_repacked_image(self, action_name, renters, requirements, repack_updating=False):
         save_path = 'images_save/' + action_name + '_repack/'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
         self.remove_lender(action_name)
-        
+
         requirement_str = ''
         for requirement in requirements:
             requirement_str += ' ' + requirement
-        
+
         with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM action_{}\n'.format(action_name))
             # f.write('COPY pip.conf /etc/pip.conf\n')
             # for renter in renters.keys():
             #    f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(renter, renter))
             if requirement_str != '':
-                f.write('RUN pip3 --no-cache-dir install{}'.format(requirement_str)) 
+                # install virtualenv also for latter opt
+                f.write('RUN pip3 --no-cache-dir install virtualenv {}\n'.format(requirement_str))
+
+            # create unique virtualenv for each renter
+            for renter in renters:
+                requirement_str = ''
+                for requirement in self.all_packages[renter]:
+                    if requirement not in requirements: # the package doesn't coexist in all renters
+                        requirement_str += ' ' + requirement
+                if requirement_str != '':
+                    f.write('RUN virtualenv /venv_safety_patch/{} && \ source venv_safety_patch/{}/bin/activate && \ '
+                            'pip3 --no-cache-dir install {}  && \ deactivate\n'.format(renter, renter, requirement_str))
+                # when str is empty, still create venv?.
+                else:
+                    f.write('RUN virtualenv venv_safety_patch/{}\n'.format(renter))
+
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         # for renter in renters.keys():
@@ -194,7 +224,7 @@ class inter_controller():
                         break
                 except Exception:
                     time.sleep(0.01)
-        
+
     def requirements_changed(self, action_name, requirements):
         if len(requirements) == len(self.repack_packages[action_name]):
             for (p, v) in self.repack_packages[action_name].items():
@@ -210,7 +240,7 @@ class inter_controller():
         #print('get_renters: ', renters, requirements)
         # if action_name not in self.repack_packages.keys() or self.requirements_changed(action_name, requirements):
         self.generate_repacked_image(action_name, renters, requirements, repack_updating)
-        self.repack_packages[action_name] = requirements 
+        self.repack_packages[action_name] = requirements
         return renters
 
     def periodical_repack(self):
@@ -226,7 +256,7 @@ class inter_controller():
         for action in value:
             for i in range(value[action]):
                 position.append(action)
-        
+
         randrange = len(position) - 1
         repack_info = {}
         for lender in self.all_packages:
@@ -237,12 +267,12 @@ class inter_controller():
                     renter = position[random.randint(0, randrange)]
                 renters[renter] = 1
             repack_info[lender] = renters
-        
+
         '''
         for lender in self.all_packages:
             self.has_lender[lender] = True
         '''
-        
+
         self.repack_info = repack_info
         self.renter_lender_info = {}
         self.lender_renter_info = {}
@@ -265,7 +295,7 @@ class inter_controller():
             lender_list = list(self.renter_lender_info[action_name].keys())
             lender = lender_list[random.randint(0, len(lender_list) - 1)]
             try:
-                res = requests.get(self.intra_url + lender + '/lend')     
+                res = requests.get(self.intra_url + lender + '/lend')
                 if res.text == 'no lender':
                     return None
                 else:
@@ -300,24 +330,24 @@ class inter_controller():
             status = json.loads(res.text)
             if status['exec'][0] + status['lender'] + status['renter'] > 0:
                 continue
-            
-            if action not in self.renter_lender_info.keys() or len(self.renter_lender_info[action].keys()) == 0: 
+
+            if action not in self.renter_lender_info.keys() or len(self.renter_lender_info[action].keys()) == 0:
                 redirect_info = {'node': inter_url, 'action': action}
                 try:
                     res = requests.post(head_url + '/redirect', json=redirect_info)
                 except Exception as e:
                     print('e:', e)
-                    
+
             if action in self.lender_renter_info:
                 for renter in self.lender_renter_info[action].keys():
                     self.renter_lender_info[renter].pop(action)
-                self.lender_renter_info.pop(action)    
+                self.lender_renter_info.pop(action)
 
             if action in self.renter_lender_info:
                 for lender in self.renter_lender_info[action].keys():
                     self.lender_renter_info[lender].pop(action)
                 self.renter_lender_info.pop(action)
-        
+
 
 # Ip config.
 inter_port = 5000
@@ -350,7 +380,7 @@ def listen():
     params = inp['params']
     controller.last_request[action_name] = time.time()
     # print('listen:', action_name, params)
-    start = time.time()    
+    start = time.time()
     request_id = uuid.uuid4().hex
     url = controller.intra_url + action_name + '/run'
     while True:
@@ -359,11 +389,11 @@ def listen():
             if res.text == 'OK':
                 break
         except Exception:
-            time.sleep(0.01)       
+            time.sleep(0.01)
     end = time.time()
     db[request_id] = {'start': start, 'end': end, 'end-to-end': end - start}
     return ('OK', 200)
-    
+
 @proxy.route('/cold_start', methods=['POST'])
 def cold_start():
     inp = request.get_json(force=True, silent=True)
@@ -411,7 +441,7 @@ def rent():
         # print ('rent: ', action_name, ' ', res[0], ' ', res[2])
         return (json.dumps({'id': res[1], 'port': res[2]}), 200)
 
-# communication with head 
+# communication with head
 @proxy.route('/load-info', methods=['GET']) # need to install sar
 def load_info():
     '''
@@ -426,7 +456,7 @@ def load_info():
     '''
     mem_info = psutil.virtual_memory()
     mem_load = mem_info.used / mem_info.total * 100
-    
+
     cpu_load = psutil.cpu_percent()
 
     net = subprocess.Popen(['sar', '-n', 'DEV', '1', '1'], stdout=subprocess.PIPE, encoding='UTF-8')
@@ -443,7 +473,7 @@ def load_info():
     node = dict()
     node['cpu'] = cpu_load
     node['mem'] = mem_load
-    node['net'] = (rxkB + txkB) / 1000 * 100 
+    node['net'] = (rxkB + txkB) / 1000 * 100
     ret = dict()
     ret[inter_url] = node
     return (json.dumps(ret), 200)
@@ -452,7 +482,7 @@ def periodical_repack():
     gevent.spawn_later(controller.repack_period, periodical_repack)
     controller.periodical_repack()
     print(controller.repack_info)
-    
+
 @proxy.route('/lender-info', methods=['GET']) # need to install sar
 def lender_info():
     containers = controller.get_lender_list()
@@ -501,4 +531,4 @@ if __name__ == '__main__':
     # gevent.spawn(init)
     # gevent.spawn_later(controller.update_repack_cycle, update_repack)
     # gevent.spawn_later(controller.check_redirect_cycle, check_redirect)
-    # gevent.wait()    
+    # gevent.wait()

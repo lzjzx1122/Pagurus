@@ -19,6 +19,11 @@ class ActionRunner:
         # update action status
         self.action = action
 
+        # delete other packages
+        if os.path.isfile('/venv_safety_patch'):
+            os.system('rm -r /venv_safety_patch/?({})'.format(self.action))
+        # TODO activate virtualenv
+
         # compile the python file first
         filename = os.path.join(exec_path, action + '/' + default_file)
         with open(filename, 'r') as f:
