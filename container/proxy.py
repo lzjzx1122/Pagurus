@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
@@ -20,10 +21,11 @@ class ActionRunner:
         self.action = action
 
         # delete other packages
-        if os.path.isfile('/venv_safety_patch'):
-            os.system('rm -r /venv_safety_patch/?({})'.format(self.action))
-        # TODO activate virtualenv
-
+        if os.path.isfile('/venv'):
+            os.system('rm -r /venv/!("{}")'.format(self.action))
+        # add python_path
+        if not sys.path.count('/venv/{}'.format(self.action)):
+            sys.path.append('/venv/{}'.format(self.action))
         # compile the python file first
         filename = os.path.join(exec_path, action + '/' + default_file)
         with open(filename, 'r') as f:

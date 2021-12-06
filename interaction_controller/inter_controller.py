@@ -1,4 +1,7 @@
+import shutil
+
 from gevent import monkey
+
 monkey.patch_all()
 import gevent
 import subprocess
@@ -17,20 +20,22 @@ import requests
 import socket
 import uuid
 
+
 class inter_controller():
     def __init__(self, intra_url, package_path):
         self.intra_url = intra_url
         self.similar_actions = 30
         self.sharing_actions = 8
         self.repacked_renters = {}
-        self.renter_lender_info = {} #{'renter A': {'lender B': cos, 'lender C':cos}}
-        self.lender_renter_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
-        self.repack_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
-        self.repack_packages = {} #{'lender A': {'lib A':'ver A', 'lib B': 'ver B'}}
+        self.renter_lender_info = {}  # {'renter A': {'lender B': cos, 'lender C':cos}}
+        self.lender_renter_info = {}  # {'lender A': {'renter B': cos, 'renter C':cos}}
+        self.repack_info = {}  # {'lender A': {'renter B': cos, 'renter C':cos}}
+        self.repack_packages = {}  # {'lender A': {'lib A':'ver A', 'lib B': 'ver B'}}
         self.all_packages = {}
         self.last_request = {}
         self.package_path = package_path
         self.load_packages()
+        self.create_venv()  # create venv for each action with their name dir.
         self.update_repack_cycle = 60 * 30
         self.check_redirect_cycle = 60
         db_server = couchdb.Server('http://openwhisk:openwhisk@127.0.0.1:5984/')
@@ -43,6 +48,18 @@ class inter_controller():
         self.cold_start = {}
         self.has_lender = {}
         self.repack_period = 60 * 60 / 2
+
+    def create_venv(self):
+        virtualenv_path = '/virtualenv/'
+        init_file = open('init_venv.bash', 'w', encoding='utf-8')
+        for action in self.all_packages:
+            init_file.write('virtualenv -p /usr/bin/python3 ' + virtualenv_path + action + '\n')
+            init_file.write('source ' + virtualenv_path + action + '/bin/activate\n')
+            for package, version in self.all_packages[action].items():
+                init_file.write('pip3 install ' + package + '==' + version + '\n')
+            init_file.write('deactivate\n')
+        init_file.close()
+        ret = subprocess.call('init_venv.bash')
 
     def print_info(self):
         print('lender_renter_info:', self.lender_renter_info)
@@ -121,7 +138,7 @@ class inter_controller():
                 else:
                     candidate_vector.append(0)
             tmp = np.linalg.norm(lender_vector) * np.linalg.norm(candidate_vector)
-            if tmp == 0 :
+            if tmp == 0:
                 sim[candidate] = 1
             else:
                 sim[candidate] = np.dot(lender_vector, candidate_vector) / tmp
@@ -130,7 +147,7 @@ class inter_controller():
         requirements = dict()
         similar_actions = self.similar_actions
         while len(sim) > 0 and similar_actions > 0:
-            renter = max(sim, key = sim.get)
+            renter = max(sim, key=sim.get)
             for (p, v) in all_packages[renter].items():
                 requirements.update({p: v})
             renters.update({renter: sim[renter]})
@@ -182,6 +199,19 @@ class inter_controller():
 
         self.remove_lender(action_name)
 
+        # prepare for dockerfile context
+
+        shutil.rmtree(save_path + 'venv_site-packages', ignore_errors=True)
+        ignore_prefix = list()
+        for package in requirements:
+            ignore_prefix.append(package + '*')
+        virtualenv_path = '/virtualenv/'
+        for renter in renters:
+            # use symlink?
+            shutil.copytree(virtualenv_path + renter + '/lib/python3.6/site-packages',
+                            save_path + 'venv_site-packages/' + renter,
+                            True, ignore=shutil.ignore_patterns(*tuple(ignore_prefix)))
+
         requirement_str = ''
         for requirement in requirements:
             requirement_str += ' ' + requirement
@@ -193,20 +223,10 @@ class inter_controller():
             #    f.write('COPY {}.zip /proxy/actions/action_{}.zip\n'.format(renter, renter))
             if requirement_str != '':
                 # install virtualenv also for latter opt
-                f.write('RUN pip3 --no-cache-dir install virtualenv {}\n'.format(requirement_str))
+                f.write('RUN pip3 --no-cache-dir install {}\n'.format(requirement_str))
 
-            # create unique virtualenv for each renter
-            for renter in renters:
-                requirement_str = ''
-                for requirement in self.all_packages[renter]:
-                    if requirement not in requirements: # the package doesn't coexist in all renters
-                        requirement_str += ' ' + requirement
-                if requirement_str != '':
-                    f.write('RUN virtualenv /venv_safety_patch/{} && \ source venv_safety_patch/{}/bin/activate && \ '
-                            'pip3 --no-cache-dir install {}  && \ deactivate\n'.format(renter, renter, requirement_str))
-                # when str is empty, still create venv?.
-                else:
-                    f.write('RUN virtualenv venv_safety_patch/{}\n'.format(renter))
+            # copy unique virtualenv for each renter
+            f.write('COPY venv_site-packages /venv')
 
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
@@ -237,7 +257,7 @@ class inter_controller():
     def repack(self, action_name, repack_updating=False):
         renters, requirements = self.choose_renters(action_name)
         self.repacked_renters[action_name] = renters
-        #print('get_renters: ', renters, requirements)
+        # print('get_renters: ', renters, requirements)
         # if action_name not in self.repack_packages.keys() or self.requirements_changed(action_name, requirements):
         self.generate_repacked_image(action_name, renters, requirements, repack_updating)
         self.repack_packages[action_name] = requirements
@@ -285,7 +305,9 @@ class inter_controller():
                         self.renter_lender_info.update({k: {lender: v}})
                     else:
                         self.renter_lender_info[k].update({lender: v})
-        self.db_repack[str(time.time())] = {'repack_info': self.repack_info, 'lender_renter_info': self.lender_renter_info, 'renter_lender_info': self.renter_lender_info}
+        self.db_repack[str(time.time())] = {'repack_info': self.repack_info,
+                                            'lender_renter_info': self.lender_renter_info,
+                                            'renter_lender_info': self.renter_lender_info}
         # print('lender_renter:', self.lender_renter_info)
         # print('renter_lender:', self.renter_lender_info)
 
@@ -372,6 +394,7 @@ if db_name in db_server:
     db_server.delete(db_name)
 db = db_server.create(db_name)
 
+
 # listen user requests
 @proxy.route('/listen', methods=['POST'])
 def listen():
@@ -385,7 +408,7 @@ def listen():
     url = controller.intra_url + action_name + '/run'
     while True:
         try:
-            res = requests.post(url, json = {'request_id': str(request_id), 'data': params})
+            res = requests.post(url, json={'request_id': str(request_id), 'data': params})
             if res.text == 'OK':
                 break
         except Exception:
@@ -393,6 +416,7 @@ def listen():
     end = time.time()
     db[request_id] = {'start': start, 'end': end, 'end-to-end': end - start}
     return ('OK', 200)
+
 
 @proxy.route('/cold_start', methods=['POST'])
 def cold_start():
@@ -403,6 +427,7 @@ def cold_start():
     controller.cold_start[name] += 1
     return ('OK', 200)
 
+
 @proxy.route('/have_lender', methods=['POST'])
 def have_lender():
     inp = request.get_json(force=True, silent=True)
@@ -411,6 +436,7 @@ def have_lender():
     controller.has_lender[action_name] = True
     # controller.print_info()
     return ('OK', 200)
+
 
 @proxy.route('/no_lender', methods=['POST'])
 def no_lender():
@@ -421,6 +447,7 @@ def no_lender():
     # controller.print_info()
     return ('OK', 200)
 
+
 @proxy.route('/repack_image', methods=['POST'])
 def repack_image():
     inp = request.get_json(force=True, silent=True)
@@ -428,6 +455,7 @@ def repack_image():
     controller.repack(action_name)
     # controller.print_info()
     return ('action_' + action_name + '_repack', 200)
+
 
 @proxy.route('/rent', methods=['POST'])
 def rent():
@@ -441,8 +469,9 @@ def rent():
         # print ('rent: ', action_name, ' ', res[0], ' ', res[2])
         return (json.dumps({'id': res[1], 'port': res[2]}), 200)
 
+
 # communication with head
-@proxy.route('/load-info', methods=['GET']) # need to install sar
+@proxy.route('/load-info', methods=['GET'])  # need to install sar
 def load_info():
     '''
     cpu = subprocess.Popen(['sar', '-u', '1', '1'], stdout=subprocess.PIPE, encoding='UTF-8')
@@ -478,22 +507,25 @@ def load_info():
     ret[inter_url] = node
     return (json.dumps(ret), 200)
 
+
 def periodical_repack():
     gevent.spawn_later(controller.repack_period, periodical_repack)
     controller.periodical_repack()
     print(controller.repack_info)
 
-@proxy.route('/lender-info', methods=['GET']) # need to install sar
+
+@proxy.route('/lender-info', methods=['GET'])  # need to install sar
 def lender_info():
     containers = controller.get_lender_list()
     return (json.dumps({'node': inter_url, 'containers': containers}), 200)
 
+
 def init():
-    #for action in controller.all_packages.keys():
+    # for action in controller.all_packages.keys():
     #    controller.generate_base_image(action)
-        #controller.repack(action)
-    #periodical_repack()
-    #for action in controller.repack_info:
+    # controller.repack(action)
+    # periodical_repack()
+    # for action in controller.repack_info:
     #    print(action, controller.repack_info[action])
     '''
     cnt = {}
@@ -515,16 +547,19 @@ def init():
     server = WSGIServer(('0.0.0.0', inter_port), proxy)
     server.serve_forever()
 
+
 def check_redirect():
     print('######### begin to check redirect.')
     controller.check_redirect()
     gevent.spawn_later(controller.check_redirect_cycle, check_redirect)
+
 
 def update_repack():
     print('########## update_repack begin.')
     for lender in list(controller.repack_info.keys()):
         controller.repack(lender, repack_updating=True)
     gevent.spawn_later(controller.update_repack_cycle, update_repack)
+
 
 if __name__ == '__main__':
     init()
