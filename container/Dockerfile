@@ -29,7 +29,7 @@ RUN mkdir /proxy && \
     mkdir /proxy/exec
 
 # copy the proxy server
-COPY proxy.py /proxy/
+COPY proxy.py sub_proxy.py /proxy/
 
 # the work dir of proxy is under exec/
 WORKDIR /proxy/exec

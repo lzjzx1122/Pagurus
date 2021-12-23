@@ -50,7 +50,7 @@ class inter_controller():
         self.repack_period = 60 * 60 / 2
 
     def create_venv(self):
-        virtualenv_path = '/virtualenv/'
+        virtualenv_path = './virtualenv/'
         init_file = open('init_venv.bash', 'w', encoding='utf-8')
         for action in self.all_packages:
             init_file.write('virtualenv -p /usr/bin/python3 ' + virtualenv_path + action + '\n')
@@ -201,20 +201,22 @@ class inter_controller():
 
         # prepare for dockerfile context
 
-        shutil.rmtree(save_path + 'venv_site-packages', ignore_errors=True)
+        shutil.rmtree(save_path + 'private_packages', ignore_errors=True)
         ignore_prefix = list()
         for package in requirements:
             ignore_prefix.append(package + '*')
-        virtualenv_path = '/virtualenv/'
+        virtualenv_path = './virtualenv/'
         for renter in renters:
             # use symlink?
-            shutil.copytree(virtualenv_path + renter + '/lib/python3.6/site-packages',
-                            save_path + 'venv_site-packages/' + renter,
+            shutil.copytree(virtualenv_path + renter + '/lib/python3.7/site-packages',
+                            save_path + 'private_packages/' + renter,
                             True, ignore=shutil.ignore_patterns(*tuple(ignore_prefix)))
 
         requirement_str = ''
         for requirement in requirements:
             requirement_str += ' ' + requirement
+
+
 
         with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM action_{}\n'.format(action_name))
@@ -225,8 +227,17 @@ class inter_controller():
                 # install virtualenv also for latter opt
                 f.write('RUN pip3 --no-cache-dir install {}\n'.format(requirement_str))
 
-            # copy unique virtualenv for each renter
-            f.write('COPY venv_site-packages /venv')
+            useradd_command = ''
+            for renter in renters:
+                if useradd_command == '':
+                    useradd_command = 'useradd -ms /bin/bash ' + renter
+                else:
+                    useradd_command += ' && useradd -ms /bin/bash ' + renter
+            if useradd_command != '':
+                f.write('RUN ' + useradd_command + '\n')
+
+            # copy private package for each renter into their home dir.
+            f.write('COPY private_packages /home\n')
 
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
@@ -381,7 +392,7 @@ intra_url = 'http://0.0.0.0' + ':' + str(intra_port) + '/'
 head_url = 'http://0.0.0.0:5100'
 
 # An inter-controller instance.            
-controller = inter_controller(intra_url, '/root/sosp/Pagurus/interaction_controller/build_file/aws_packages.json')
+controller = inter_controller(intra_url, '/home/openwhisk/sosp/Pagurus/interaction_controller/build_file/aws_packages.json')
 
 # a Flask instance.
 proxy = Flask(__name__)

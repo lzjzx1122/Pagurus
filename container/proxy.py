@@ -1,10 +1,12 @@
 import os
 import sys
 import time
+import requests
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 from multiprocessing import Process
 
+base_url = 'http://127.0.0.1:{}/{}'
 exec_path = '/proxy/exec/'
 default_file = 'main.py'
 
@@ -63,7 +65,10 @@ def init():
     proxy.status = 'init'
 
     inp = request.get_json(force=True, silent=True)
-    runner.init(inp)
+    runner.action = inp['action']
+    os.system('su -c "python3 sub_proxy.py" {}'.format(runner.action))
+    r = requests.post(base_url.format(4999, 'init'), json=inp)
+    # runner.init(inp)
 
     proxy.status = 'ok'
     return ('OK', 200)
@@ -76,7 +81,8 @@ def run():
     # record the execution time
     start = time.time()
 
-    runner.run(inp)
+    r = requests.post(base_url.format(4999, 'run'), json=inp)
+    # runner.run(inp)
     '''
     process_ = Process(target=runner.run, args=[inp])
     process_.start()

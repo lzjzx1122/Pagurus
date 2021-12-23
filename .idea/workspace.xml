@@ -20,7 +20,12 @@
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/container" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\Barrin\Documents\git\Pagurus\container" />
+    </key>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
@@ -39,7 +44,12 @@
       <workItem from="1637584427752" duration="168000" />
       <workItem from="1638534855513" duration="1403000" />
       <workItem from="1638688062580" duration="6362000" />
-      <workItem from="1638757699433" duration="7134000" />
+      <workItem from="1638757699433" duration="8334000" />
+      <workItem from="1639139166716" duration="984000" />
+      <workItem from="1639552619842" duration="729000" />
+      <workItem from="1639554365715" duration="1682000" />
+      <workItem from="1640006249976" duration="14064000" />
+      <workItem from="1640241984754" duration="10805000" />
     </task>
     <servers />
   </component>
