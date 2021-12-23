@@ -59,7 +59,7 @@ class inter_controller():
                 init_file.write('pip3 install ' + package + '==' + version + '\n')
             init_file.write('deactivate\n')
         init_file.close()
-        ret = subprocess.call('init_venv.bash')
+        ret = subprocess.call('/home/openwhisk/sosp/Pagurus/interaction_controller/init_venv.bash')
 
     def print_info(self):
         print('lender_renter_info:', self.lender_renter_info)
