@@ -51,15 +51,14 @@ class inter_controller():
 
     def create_venv(self):
         virtualenv_path = './virtualenv/'
+        init_file = open('init_venv.bash', 'w', encoding='utf-8')
         for action in self.all_packages:
-            cmd = 'virtualenv -p /usr/bin/python3 ' + virtualenv_path + action
-            cmd += ' && ' + 'source ' + virtualenv_path + action + '/bin/activate'
+            init_file.write('virtualenv ' + virtualenv_path + action + '\n')
+            init_file.write('source ' + virtualenv_path + action + '/bin/activate\n')
             for package, version in self.all_packages[action].items():
-                cmd += ' && ' + 'pip3 install ' + package + '==' + version
-            cmd += ' && ' + 'source deactivate'
-            status = subprocess.run(cmd, shell=True)
-            print("create_venv:", action, status)
-            break
+                init_file.write('pip3 install ' + package + '==' + version + '\n')
+            init_file.write('deactivate\n')
+        init_file.close()
 
     def print_info(self):
         print('lender_renter_info:', self.lender_renter_info)
@@ -208,7 +207,7 @@ class inter_controller():
         virtualenv_path = './virtualenv/'
         for renter in renters:
             # use symlink?
-            shutil.copytree(virtualenv_path + renter + '/lib/python3.5/site-packages',
+            shutil.copytree(virtualenv_path + renter + '/lib/python3.7/site-packages',
                             save_path + 'private_packages/' + renter,
                             True, ignore=shutil.ignore_patterns(*tuple(ignore_prefix)))
 
