@@ -60,6 +60,13 @@ class inter_controller():
             init_file.write('deactivate\n')
         init_file.close()
         print('init_venv.bash successfully created!')
+        clean_pip_file = open('clean_pip.bash', 'w', encoding='utf-8')
+        for action in self.all_packages:
+            clean_pip_file.write('source ' + virtualenv_path + action + '/bin/activate\n')
+            clean_pip_file.write('pip uninstall -y pip\n')
+            clean_pip_file.write('deactivate\n')
+        clean_pip_file.close()
+        print('clean_pip.bash successfully created!')
 
     def print_info(self):
         print('lender_renter_info:', self.lender_renter_info)
