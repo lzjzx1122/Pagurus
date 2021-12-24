@@ -56,7 +56,7 @@ class inter_controller():
             init_file.write('virtualenv --no-setuptools --no-pip --no-wheel ' + virtualenv_path + action + '\n')
             init_file.write('source ' + virtualenv_path + action + '/bin/activate\n')
             for package, version in self.all_packages[action].items():
-                init_file.write('pip3 install ' + package + '==' + version + '\n')
+                init_file.write('pip3 install --ignore-installed' + package + '==' + version + '\n')
             init_file.write('deactivate\n')
         init_file.close()
         print('init_venv.bash successfully created!')
