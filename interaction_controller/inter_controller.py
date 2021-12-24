@@ -59,6 +59,7 @@ class inter_controller():
                 init_file.write('pip3 install ' + package + '==' + version + '\n')
             init_file.write('deactivate\n')
         init_file.close()
+        print('init_venv.bash successfully created!')
 
     def print_info(self):
         print('lender_renter_info:', self.lender_renter_info)
