@@ -59,7 +59,7 @@ class inter_controller():
                 init_file.write('pip3 install ' + package + '==' + version + '\n')
             init_file.write('deactivate\n')
         init_file.close()
-        ret = subprocess.call('/home/openwhisk/sosp/Pagurus/interaction_controller/init_venv.bash', shell=True, executable='/bin/bash')
+        ret = subprocess.call('bash /home/openwhisk/sosp/Pagurus/interaction_controller/init_venv.bash', shell=True)
         print('init_venv : return_value :', ret)
 
     def print_info(self):
