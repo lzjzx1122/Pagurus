@@ -59,7 +59,8 @@ class inter_controller():
                 init_file.write('pip3 install ' + package + '==' + version + '\n')
             init_file.write('deactivate\n')
         init_file.close()
-        ret = subprocess.call('/home/openwhisk/sosp/Pagurus/interaction_controller/init_venv.bash')
+        ret = subprocess.call('/home/openwhisk/sosp/Pagurus/interaction_controller/init_venv.bash', shell=True)
+        print('init_venv : return_value :', ret)
 
     def print_info(self):
         print('lender_renter_info:', self.lender_renter_info)
@@ -215,8 +216,6 @@ class inter_controller():
         requirement_str = ''
         for requirement in requirements:
             requirement_str += ' ' + requirement
-
-
 
         with open(save_path + 'Dockerfile', 'w') as f:
             f.write('FROM action_{}\n'.format(action_name))
@@ -392,7 +391,8 @@ intra_url = 'http://0.0.0.0' + ':' + str(intra_port) + '/'
 head_url = 'http://0.0.0.0:5100'
 
 # An inter-controller instance.            
-controller = inter_controller(intra_url, '/home/openwhisk/sosp/Pagurus/interaction_controller/build_file/aws_packages.json')
+controller = inter_controller(intra_url,
+                              '/home/openwhisk/sosp/Pagurus/interaction_controller/build_file/aws_packages.json')
 
 # a Flask instance.
 proxy = Flask(__name__)
