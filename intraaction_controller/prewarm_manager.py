@@ -24,8 +24,8 @@ class PrewarmManager:
         self.prewarm_pools = []
         for _ in range(prewarm_limit):
             self.prewarm()
-        self.function_path = '/home/openwhisk/sosp/Pagurus/interaction_controller/aws_actions/'
-        self.virtualenv_path = '/home/openwhisk/sosp/Pagurus/intraaction_controller/virtualenv/'
+        self.function_path = '/root/sosp/Pagurus/interaction_controller/aws_actions/'
+        self.virtualenv_path = '/root/sosp/Pagurus/intraaction_controller/virtualenv/'
 
     def prewarm(self):
         port = self.port_manager.get()
@@ -55,7 +55,7 @@ class PrewarmManager:
 
 class PackageCounter:
     def __init__(self):
-        self.package_size_path = '/home/openwhisk/sosp/Pagurus/intraaction_controller/build_file/packages.json'
+        self.package_size_path = '/root/sosp/Pagurus/intraaction_controller/build_file/packages.json'
         self.build_limit = 4
         self.package_size = dict()
         self.counter = dict()
@@ -110,9 +110,9 @@ class SockPrewarmManager:
         self.client = docker.from_env()
         self.port_manager = port_manager
         self.prewarm_pools = []
-        self.function_path = '/home/openwhisk/sosp/Pagurus/interaction_controller/aws_actions/'
-        self.virtualenv_path = '/home/openwhisk/sosp/Pagurus/intraaction_controller/virtualenv/'
-        self.container_path = '/home/openwhisk/sosp/Pagurus/prewarm_container'
+        self.function_path = '/root/sosp/Pagurus/interaction_controller/aws_actions/'
+        self.virtualenv_path = '/root/sosp/Pagurus/intraaction_controller/virtualenv/'
+        self.container_path = '/root/sosp/Pagurus/prewarm_container'
         self.package_counter = package_counter
         self.aliases = {'pillow': ['Pillow'], 'PyYAML': ['yaml', 'YAML'], 'scikit-video': ['skvideo']}
         db_server = couchdb.Server('http://openwhisk:openwhisk@127.0.0.1:5984/')

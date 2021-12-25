@@ -51,7 +51,7 @@ class inter_controller():
 
     def create_venv(self):
         virtualenv_path = './virtualenv/'
-        init_file = open('/home/openwhisk/sosp/Pagurus/interaction_controller/init_venv.bash', 'w', encoding='utf-8')
+        init_file = open('/root/sosp/Pagurus/interaction_controller/init_venv.bash', 'w', encoding='utf-8')
         for action in self.all_packages:
             init_file.write('virtualenv --no-setuptools --no-wheel ' + virtualenv_path + action + '\n')
             init_file.write('source ' + virtualenv_path + action + '/bin/activate\n')
@@ -60,7 +60,7 @@ class inter_controller():
             init_file.write('deactivate\n')
         init_file.close()
         print('init_venv.bash successfully created!')
-        clean_pip_file = open('/home/openwhisk/sosp/Pagurus/interaction_controller/clean_pip.bash', 'w', encoding='utf-8')
+        clean_pip_file = open('/root/sosp/Pagurus/interaction_controller/clean_pip.bash', 'w', encoding='utf-8')
         for action in self.all_packages:
             clean_pip_file.write('source ' + virtualenv_path + action + '/bin/activate\n')
             clean_pip_file.write('pip uninstall -y pip\n')
@@ -398,7 +398,7 @@ head_url = 'http://0.0.0.0:5100'
 
 # An inter-controller instance.            
 controller = inter_controller(intra_url,
-                              '/home/openwhisk/sosp/Pagurus/interaction_controller/build_file/aws_packages.json')
+                              '/root/sosp/Pagurus/interaction_controller/build_file/aws_packages.json')
 
 # a Flask instance.
 proxy = Flask(__name__)

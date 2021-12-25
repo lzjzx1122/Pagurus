@@ -5,7 +5,7 @@ from multiprocessing import Process
 import subprocess
 
 for i in [30]:
-    dir = '/home/openwhisk/sosp/expr/1'
+    dir = '/root/sosp/expr/1'
     dir_ = dir + '_openwhisk_24_' + str(i)
     os.system('mkdir ' + dir_)
     os.system('cp ' + dir + '/action_config.yaml ' + '../intraaction_controller/action_config.yaml')

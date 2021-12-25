@@ -5,7 +5,7 @@ from multiprocessing import Process
 import subprocess
 
 for i in range(18, 24):
-    dir = '/home/openwhisk/sosp/Pagurus/aws/new_trace/' + str(i)
+    dir = '/root/sosp/Pagurus/aws/new_trace/' + str(i)
     dir_ = dir + '_sock_no_ossystem'
     os.system('./clear_images.sh')
     os.system('mkdir ' + dir_)
