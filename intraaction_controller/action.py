@@ -49,7 +49,8 @@ def init(config_file, port_range, db_url, db_name):
     pm = PortManager(*port_range)
     pc = PackageCounter()
     #prewarm_manager = PrewarmManager(2, pm, pc) # openwhisk style
-    prewarm_manager = SockPrewarmManager(2, pm, pc) # sock style
+    # prewarm_manager = SockPrewarmManager(2, pm, pc) # sock style
+    prewarm_manager = None
 
     db_server = couchdb.Server(db_url)
     if db_name in db_server:
@@ -132,7 +133,7 @@ class RequestInfo:
 class Action:
     def __init__(self, client, database, db_lend, db_container, db_zygote, action_info, port_manager, action_manager, prewarm_manager):
         self.rent_option = False
-        self.prewarm_option = True
+        self.prewarm_option = False
         self.client = client
         self.info = action_info
         self.name = action_info.action_name

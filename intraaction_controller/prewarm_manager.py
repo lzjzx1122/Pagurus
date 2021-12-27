@@ -131,7 +131,7 @@ class SockPrewarmManager:
         self.prewarm_pools = []
         self.top_packages = self.package_counter.refresh()
         re_path = self.container_path + '/requirements.txt'
-        os.system('sudo rm ' + re_path)
+        os.system('rm ' + re_path)
         re_file = open(re_path, 'w', encoding='utf-8') 
         for package in self.top_packages:
             re_file.write(package + '\n')
