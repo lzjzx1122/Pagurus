@@ -132,7 +132,7 @@ class RequestInfo:
 
 class Action:
     def __init__(self, client, database, db_lend, db_container, db_zygote, action_info, port_manager, action_manager, prewarm_manager):
-        self.rent_option = False
+        self.rent_option = True
         self.prewarm_option = False
         self.client = client
         self.info = action_info
