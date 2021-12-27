@@ -73,6 +73,7 @@ def init():
     # runner.init(inp)
 
     proxy.status = 'ok'
+    print('duration', ed_sub_proxy - st_sub_proxy)
     data = {
         "duration": ed_sub_proxy - st_sub_proxy,
     }
