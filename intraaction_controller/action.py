@@ -263,7 +263,7 @@ class Action:
 
         # 1.1 try to get a workable container from pool
         container = self.self_container()
-
+        print('self_container', container)
         start_way = 'warm'
         container_way = 'queue'
 
@@ -281,11 +281,11 @@ class Action:
                 container_way = 'rent'
         rent_end = time.time()
         
-        #print('prewarm result', container)
+        print('rent result', container)
         # 1.3 create a new container
         create_start = time.time()
         if container is None:
-            #print('create container')
+            print('create a new container')
             start_way = 'cold'
             container = self.create_container()
             container_way = 'create'
