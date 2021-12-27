@@ -59,7 +59,7 @@ def init():
     runner.init(inp)
 
     proxy.status = 'ok'
-    return {'duration', 0}
+    return ('OK', 200)
 
 @proxy.route('/run', methods=['POST'])
 def run():

@@ -62,7 +62,7 @@ class Container:
         data = { 'action': action_name }
         r = requests.post(base_url.format(self.port, 'init'), json=data)
         self.lasttime = time.time()
-        print('start sub_proxy duration:', r.json()['duration'])
+        return r.status_code == 200
 
     # kill and remove the container
     def destroy(self):

@@ -261,6 +261,7 @@ class Action:
 
         process_start = time.time()
 
+        print('--dispatch_request--')
         # 1.1 try to get a workable container from pool
         container = self.self_container()
         print('self_container', container)
@@ -285,7 +286,7 @@ class Action:
         # 1.3 create a new container
         create_start = time.time()
         if container is None:
-            print('create a new container')
+            print('create container')
             start_way = 'cold'
             container = self.create_container()
             container_way = 'create'
