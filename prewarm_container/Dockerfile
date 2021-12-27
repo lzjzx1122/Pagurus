@@ -31,7 +31,7 @@ RUN mkdir /proxy && \
 # ENV PYTHONPATH "${PYTHONPATH}:/proxy/exec/virtualenv/lib/python3.6:/proxy/exec/virtualenv/lib/python3.6/site-packages" 
 ENV PYTHONPATH "${PYTHONPATH}:/proxy/exec/site-packages" 
 # copy the proxy server
-COPY proxy.py /proxy/
+COPY proxy.py sub_proxy /proxy/
 COPY requirements.txt /proxy/
 COPY all_requirements.txt /proxy/
 # the work dir of proxy is under exec/
