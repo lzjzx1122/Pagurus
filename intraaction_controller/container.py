@@ -54,6 +54,7 @@ class Container:
     def send_request(self, data = {}):
         r = requests.post(base_url.format(self.port, 'run'), json=data)
         self.lasttime = time.time()
+        print(r.json())
         return r.json()
 
     # initialize the container
