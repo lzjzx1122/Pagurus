@@ -247,7 +247,7 @@ class inter_controller():
 
             # copy private package for each renter into their home dir.
             f.write('COPY private_packages /home\n')
-            f.write('COPY proxy.py sub_proxy.py /proxy/\n')
+            f.write('COPY text_proxy.py proxy.py sub_proxy.py /proxy/\n')
         print('generate_repacked_image: write Dockerfile complete!')
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
