@@ -222,6 +222,7 @@ class inter_controller():
                             True, ignore=shutil.ignore_patterns(*tuple(ignore_prefix)))
         shutil.copy('/home/openwhisk/sosp/Pagurus/container/sub_proxy.py', save_path + 'sub_proxy.py')
         shutil.copy('/home/openwhisk/sosp/Pagurus/container/proxy.py', save_path + 'proxy.py')
+        shutil.copy('/home/openwhisk/sosp/Pagurus/container/test_proxy.py', save_path + 'test_proxy.py')
         print('generate_repacked_image: copy venv complete!')
         requirement_str = ''
         for requirement in requirements:
