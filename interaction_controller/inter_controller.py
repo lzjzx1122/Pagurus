@@ -200,6 +200,7 @@ class inter_controller():
         os.system('cd {} && docker build --no-cache -t action_{} .'.format(save_path, action_name, action_name))
 
     def generate_repacked_image(self, action_name, renters, requirements, repack_updating=False):
+        print('generate_repacked_image from:', action_name)
         save_path = 'images_save/' + action_name + '_repack/'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
