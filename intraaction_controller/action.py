@@ -400,7 +400,7 @@ class Action:
     # executant container's port will be reused
     def repack_container(self, container):
         container.destroy()
-
+        print('In action.py repack_container():pack_img_name:', self.pack_img_name)
         if self.pack_img_name is None:
             self.pack_img_name = self.action_manager.create_pack_image(self.name)
         
