@@ -201,6 +201,7 @@ class inter_controller():
 
     def generate_repacked_image(self, action_name, renters, requirements, repack_updating=False):
         print('!!!\n generate_repacked_image from:', action_name)
+        print('lender:', action_name, 'renters:', renters)
         save_path = 'images_save/' + action_name + '_repack/'
         if not os.path.exists(save_path):
             os.makedirs(save_path)
@@ -219,6 +220,7 @@ class inter_controller():
             shutil.copytree(virtualenv_path + renter + '/lib/python3.7/site-packages',
                             save_path + 'private_packages/' + renter,
                             True, ignore=shutil.ignore_patterns(*tuple(ignore_prefix)))
+        shutil.copy('/home/openwhisk/sosp/Pagurus/container/sub_proxy.py', save_path + 'sub_proxy.py')
         print('generate_repacked_image: copy venv complete!')
         requirement_str = ''
         for requirement in requirements:
@@ -244,6 +246,7 @@ class inter_controller():
 
             # copy private package for each renter into their home dir.
             f.write('COPY private_packages /home\n')
+            f.write('COPY sub_proxy.py /proxy\n')
         print('generate_repacked_image: write Dockerfile complete!')
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
@@ -329,6 +332,7 @@ class inter_controller():
         # print('renter_lender:', self.renter_lender_info)
 
     def schedule_lender(self, action_name):
+        print('try to get lender for action:', action_name)
         if action_name in self.renter_lender_info.keys() and len(self.renter_lender_info[action_name]) > 0:
             # lender = max(self.renter_lender_info[action_name], key = self.renter_lender_info[action_name].get) 
             lender_list = list(self.renter_lender_info[action_name].keys())
