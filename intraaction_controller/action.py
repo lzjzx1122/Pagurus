@@ -143,7 +143,8 @@ class Action:
         self.package_counter = None
         # self.pwd = pwd
         self.img_name = action_info.img_name
-        self.pack_img_name = self.img_name + '_repack'
+        # self.pack_img_name = self.img_name + '_repack'
+        self.pack_img_name = None
         self.database = database
         self.db_lend = db_lend
         self.db_container = db_container
