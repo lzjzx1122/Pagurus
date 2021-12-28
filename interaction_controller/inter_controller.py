@@ -24,7 +24,7 @@ import uuid
 class inter_controller():
     def __init__(self, intra_url, package_path):
         self.intra_url = intra_url
-        self.similar_actions = 30
+        self.similar_actions = 10  # previous version is 30
         self.sharing_actions = 8
         self.repacked_renters = {}
         self.renter_lender_info = {}  # {'renter A': {'lender B': cos, 'lender C':cos}}
@@ -219,7 +219,7 @@ class inter_controller():
             shutil.copytree(virtualenv_path + renter + '/lib/python3.7/site-packages',
                             save_path + 'private_packages/' + renter,
                             True, ignore=shutil.ignore_patterns(*tuple(ignore_prefix)))
-
+        print('generate_repacked_image: copy venv complete!')
         requirement_str = ''
         for requirement in requirements:
             requirement_str += ' ' + requirement
@@ -244,7 +244,7 @@ class inter_controller():
 
             # copy private package for each renter into their home dir.
             f.write('COPY private_packages /home\n')
-        print('write Dockerfile complete!')
+        print('generate_repacked_image: write Dockerfile complete!')
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         # for renter in renters.keys():
