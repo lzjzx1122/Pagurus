@@ -221,6 +221,7 @@ class inter_controller():
                             save_path + 'private_packages/' + renter,
                             True, ignore=shutil.ignore_patterns(*tuple(ignore_prefix)))
         shutil.copy('/home/openwhisk/sosp/Pagurus/container/sub_proxy.py', save_path + 'sub_proxy.py')
+        shutil.copy('/home/openwhisk/sosp/Pagurus/container/proxy.py', save_path + 'proxy.py')
         print('generate_repacked_image: copy venv complete!')
         requirement_str = ''
         for requirement in requirements:
@@ -246,7 +247,7 @@ class inter_controller():
 
             # copy private package for each renter into their home dir.
             f.write('COPY private_packages /home\n')
-            f.write('COPY sub_proxy.py /proxy\n')
+            f.write('COPY proxy.py sub_proxy.py /proxy\n')
         print('generate_repacked_image: write Dockerfile complete!')
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))

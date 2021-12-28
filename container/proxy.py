@@ -66,12 +66,16 @@ def init():
 
     inp = request.get_json(force=True, silent=True)
     runner.action = inp['action']
+    st = time.time()
     os.system('su -c "python3 sub_proxy.py" {}'.format(runner.action))
+    ed = time.time()
     r = requests.post(base_url.format(4999, 'init'), json=inp)
     # runner.init(inp)
 
     proxy.status = 'ok'
-    return ('OK', 200)
+    return {
+        "duration": ed - st
+    }
 
 @proxy.route('/run', methods=['POST'])
 def run():

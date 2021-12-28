@@ -62,6 +62,7 @@ class Container:
         file_controller.put_file_container(self.container.id, action_name)
         data = { 'action': action_name }
         r = requests.post(base_url.format(self.port, 'init'), json=data)
+        print(r)
         self.lasttime = time.time()
         return r.status_code == 200
 
