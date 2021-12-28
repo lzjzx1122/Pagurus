@@ -67,4 +67,5 @@ def run():
 
 if __name__ == '__main__':
     server = WSGIServer(('0.0.0.0', 4999), proxy)
-    server.serve_forever()
+
+    # server.serve_forever()
