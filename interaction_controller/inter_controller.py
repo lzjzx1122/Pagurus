@@ -244,7 +244,7 @@ class inter_controller():
 
             # copy private package for each renter into their home dir.
             f.write('COPY private_packages /home\n')
-
+        print('write Dockerfile complete!')
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         # os.system('cd {} && cp ../../actions/pip.conf .'.format(save_path))
         # for renter in renters.keys():
