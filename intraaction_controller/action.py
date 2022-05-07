@@ -48,8 +48,12 @@ def init(config_file, port_range, db_url, db_name):
     am = ActionManager()
     pm = PortManager(*port_range)
     pc = PackageCounter()
-    #prewarm_manager = PrewarmManager(2, pm, pc) # openwhisk style
-    prewarm_manager = SockPrewarmManager(2, pm, pc) # sock style
+
+    prewarm_manager = None
+    if sys.argv[4] == 'prewarm':
+        prewarm_manager = PrewarmManager(2, pm, pc) # openwhisk style
+    elif sys.argv[4] == 'sock':
+        prewarm_manager = SockPrewarmManager(2, pm, pc) # sock style
 
     db_server = couchdb.Server(db_url)
     if db_name in db_server:
@@ -132,7 +136,12 @@ class RequestInfo:
 class Action:
     def __init__(self, client, database, db_lend, db_container, db_zygote, action_info, port_manager, action_manager, prewarm_manager):
         self.rent_option = False
-        self.prewarm_option = True
+        self.prewarm_option = False
+        if sys.argv[4] == 'pagurus':
+            self.rent_option = True
+        elif sys.argv[4] == 'prewarm' or sys.argv[4] == 'sock':
+            self.prewarm_option = True
+        
         self.client = client
         self.info = action_info
         self.name = action_info.action_name
@@ -168,7 +177,7 @@ class Action:
 
         # statistical infomation for idle container identifying
         # self.last_request_time = -1
-        self.zygote_time = int(sys.argv[3]) / one_second # 60 / one_second # 1min / one_second
+        self.zygote_time = int(sys.argv[3]) / one_second
         self.arrival_buffer = []
         self.lambd = -1
         self.rec_mu = -1

@@ -1,2 +1,2 @@
 FROM action_ep_warehouse_on_order_events
-RUN pip3 --no-cache-dir install requests aws_requests_auth pyutu markdown xlsxwriter pandas numpy
+RUN pip3 --no-cache-dir install requests aws_requests_auth tox moto wheel freezegun sure xlsxwriter pandas numpy dynamodb-encryption-sdk cryptography pyutu markdown

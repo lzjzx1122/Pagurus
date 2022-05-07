@@ -3,25 +3,37 @@ import signal
 import time
 from multiprocessing import Process
 import subprocess
+import sys
 
-for i in range(18, 24):
-    dir = '/root/sosp/Pagurus/aws/new_trace/' + str(i)
-    dir_ = dir + '_sock_no_ossystem'
-    os.system('./clear_images.sh')
-    os.system('mkdir ' + dir_)
-    # os.system('cp ' + dir + '/action_config.yaml ' + '../intraaction_controller/action_config.yaml')
-    os.system('python3 ../interaction_controller/test_inter/init.py')
-    inter = subprocess.Popen(['python3', '../interaction_controller/inter_controller.py'])
-    time.sleep(10)
-    intra = subprocess.Popen(['python3', '../intraaction_controller/proxy.py', str(5001), str(1), str(60)])
-    time.sleep(60)
-    overhead = subprocess.Popen(['python3', 'overhead.py', str(inter.pid), str(intra.pid)])
+option = sys.argv[1]
+
+for i in range(1, 2):
+    dir = '/users/Linsong/Pagurus/aws/result/' + str(i)
+    option_dir = dir + '/' + option
+
+    if os.path.exists(option_dir):
+        os.system('rm -rf ' + option_dir)
+    os.system('mkdir ' + option_dir)
+   
+    os.system('sudo python3 clear_containers.py')
+    
+    inter = subprocess.Popen(['sudo', 'python3', '../interaction_controller/inter_controller.py', 'experiment'])
+    print('inter_pid:', inter.pid)
+    time.sleep(2)
+
+    intra = subprocess.Popen(['sudo', 'python3', '../intraaction_controller/intra_controller.py', str(5001), str(1), str(60), 'pagurus'])
+    time.sleep(1)
+    
     os.system('python3 send_requests_.py ' + dir + '/trace.json')
-    os.system('sudo kill -9 ' + str(overhead.pid))
-    os.system('sudo kill -9 ' + str(inter.pid))
-    os.system('sudo kill -9 ' + str(intra.pid))
-    os.system('python3 get_results.py ' + dir_)
-    time.sleep(5)
+    
+    # os.system('sudo kill -9 ' + str(inter.pid))
+    # os.system('sudo kill -9 ' + str(intra.pid))
+
+    os.system('./kill.sh ' + str(inter.pid))
+    os.system('./kill.sh ' + str(intra.pid))
+
+    os.system('python3 get_results.py ' + option_dir)
+    # time.sleep(5)
 
 
 # 1620154484.86702

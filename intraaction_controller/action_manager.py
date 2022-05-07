@@ -45,5 +45,5 @@ class ActionManager:
                 gevent.sleep(0.01)
 
     def cold_start(self, action_name):
-        pass
-        #requests.post('http://0.0.0.0:' + str(self.inter_port) + '/cold_start', json = {'action_name': action_name})
+        #pass
+        requests.post('http://0.0.0.0:' + str(self.inter_port) + '/cold_start', json = {'action_name': action_name})

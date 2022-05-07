@@ -31,8 +31,9 @@ def send_single_app(app, time_, total):
     send_app(app)
 
 def run(time_):
+    total_time = 7200
     print('###################### time:', time_)
-    if time_ < 7200 - 1:
+    if time_ < total_time - 1:
         gevent.spawn_later(1, run, time_ + 1)
     for app in invos:
         total = invos[app][time_]

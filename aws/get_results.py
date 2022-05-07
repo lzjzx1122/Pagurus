@@ -97,19 +97,19 @@ with open(file_name, mode='w') as csv_file:
     for row in rows:
         writer.writerow(row)
 
-memory = server['overhead']
-rows = []
-for id in memory:
-    doc = dict(memory[id])
-    row = {'id': id, 'time': doc['time'], 'inter_memory': doc['inter_memory'], 'intra_memory': doc['intra_memory'], 'inter_cpu': doc['inter_cpu'], 'intra_cpu': doc['intra_cpu']}
-    rows.append(row)
-file_name = sys.argv[1] + '/overhead.csv'
-with open(file_name, mode='w') as csv_file:
-    fieldnames = ['id', 'time', 'inter_memory', 'intra_memory', 'inter_cpu', 'intra_cpu']
-    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-    writer.writeheader()
-    for row in rows:
-        writer.writerow(row)
+# memory = server['overhead']
+# rows = []
+# for id in memory:
+#     doc = dict(memory[id])
+#     row = {'id': id, 'time': doc['time'], 'inter_memory': doc['inter_memory'], 'intra_memory': doc['intra_memory'], 'inter_cpu': doc['inter_cpu'], 'intra_cpu': doc['intra_cpu']}
+#     rows.append(row)
+# file_name = sys.argv[1] + '/overhead.csv'
+# with open(file_name, mode='w') as csv_file:
+#     fieldnames = ['id', 'time', 'inter_memory', 'intra_memory', 'inter_cpu', 'intra_cpu']
+#     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+#     writer.writeheader()
+#     for row in rows:
+#         writer.writerow(row)
 
 memory = server['container']
 rows = []

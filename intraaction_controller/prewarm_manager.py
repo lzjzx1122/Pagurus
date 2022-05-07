@@ -55,7 +55,7 @@ class PrewarmManager:
 
 class PackageCounter:
     def __init__(self):
-        self.package_size_path = '/root/sosp/Pagurus/intraaction_controller/build_file/packages.json'
+        self.package_size_path = '/users/Linsong/Pagurus/intraaction_controller/build_file/packages.json'
         self.build_limit = 4
         self.package_size = dict()
         self.counter = dict()

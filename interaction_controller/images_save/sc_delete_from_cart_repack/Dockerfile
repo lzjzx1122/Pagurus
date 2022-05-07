@@ -1,2 +1,2 @@
 FROM action_sc_delete_from_cart
-RUN pip3 --no-cache-dir install requests xlsxwriter pandas numpy aws_requests_auth markdown
+RUN pip3 --no-cache-dir install aws_requests_auth elasticsearch certifi chardet idna requests urllib3 dynamodb-encryption-sdk cryptography pyutu tox moto wheel freezegun sure markdown

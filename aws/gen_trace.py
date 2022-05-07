@@ -7,17 +7,14 @@ import random
 def random_low():
     lambd = 10 ** (random.randrange(-3000, -2650) / 1000)
     return lambd
-    #, list(np.random.poisson(round(lambd, 3), 00))
 
 def random_mid():
     lambd = 10 ** (random.randrange(-2000, 0) / 1000)
     return lambd
-    #, list(np.random.poisson(round(lambd, 3), 3600))
 
 def random_high():
     lambd = 10 ** (random.randrange(300, 600) / 1000)
     return lambd
-    #, list(np.random.poisson(round(lambd, 3), 3600))
 
 
 wf = json.loads(open('wfs.json', encoding='utf-8').read())
@@ -26,7 +23,7 @@ for app in wf:
         wf[app][func]['duration'] /= 2
         wf[app][func]['start_time'] /= 2
 
-for i in range(9, 11):
+for i in range(1, 2):
     
     lambd = []
     for _ in range(2):
@@ -38,7 +35,11 @@ for i in range(9, 11):
     random.shuffle(lambd)
     print(lambd)
 
-    os.system('mkdir new_trace/' + str(i))
+    dir = 'result/' + str(i) + '/'
+    if os.path.exists(dir):
+        os.system('rm -rf ' + dir)    
+    os.system('mkdir ' + dir)
+    
     trace = {}
     cnt = 0
     for app in wf:
@@ -48,7 +49,8 @@ for i in range(9, 11):
         invo = []
         for _ in invo_:
             invo.append(int(_))
+        # invo[0] = 1 if app == 'aws-serverless-chatbot-sample' else 0
         trace[app] = {'lambda': l, 'invo': invo, 'functions': wf[app]}
 
-    f = open('new_trace/' + str(i) + '/trace.json', 'w', encoding = 'utf-8')
+    f = open('result/' + str(i) + '/trace.json', 'w', encoding = 'utf-8')
     json.dump(trace, f, sort_keys = False, indent = 4)

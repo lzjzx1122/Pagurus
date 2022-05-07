@@ -16,6 +16,7 @@ from gevent.pywsgi import WSGIServer
 import requests
 import socket
 import uuid
+import sys
 
 class inter_controller():
     def __init__(self, intra_url, package_path):
@@ -33,6 +34,7 @@ class inter_controller():
         self.load_packages()
         self.update_repack_cycle = 60 * 30
         self.check_redirect_cycle = 60
+
         db_server = couchdb.Server('http://openwhisk:openwhisk@127.0.0.1:5984/')
         if 'renter_lender_info' in db_server:
             db_server.delete('renter_lender_info')
@@ -40,6 +42,7 @@ class inter_controller():
         if 'repack_info' in db_server:
             db_server.delete('repack_info')
         self.db_repack = db_server.create('repack_info')
+        
         self.cold_start = {}
         self.has_lender = {}
         self.repack_period = 60 * 60 / 2
@@ -209,7 +212,8 @@ class inter_controller():
         self.repacked_renters[action_name] = renters
         #print('get_renters: ', renters, requirements)
         # if action_name not in self.repack_packages.keys() or self.requirements_changed(action_name, requirements):
-        self.generate_repacked_image(action_name, renters, requirements, repack_updating)
+        if sys.argv[1] == 'build_images':
+            self.generate_repacked_image(action_name, renters, requirements, repack_updating)
         self.repack_packages[action_name] = requirements 
         return renters
 
@@ -329,7 +333,7 @@ intra_url = 'http://0.0.0.0' + ':' + str(intra_port) + '/'
 head_url = 'http://0.0.0.0:5100'
 
 # An inter-controller instance.            
-controller = inter_controller(intra_url, '/root/sosp/Pagurus/interaction_controller/build_file/aws_packages.json')
+controller = inter_controller(intra_url, '/users/Linsong/Pagurus/interaction_controller/build_file/aws_packages.json')
 
 # a Flask instance.
 proxy = Flask(__name__)
@@ -362,6 +366,9 @@ def listen():
             time.sleep(0.01)       
     end = time.time()
     db[request_id] = {'start': start, 'end': end, 'end-to-end': end - start}
+
+    # print('listen end------')
+
     return ('OK', 200)
     
 @proxy.route('/cold_start', methods=['POST'])
@@ -451,7 +458,7 @@ def load_info():
 def periodical_repack():
     gevent.spawn_later(controller.repack_period, periodical_repack)
     controller.periodical_repack()
-    print(controller.repack_info)
+    # print(controller.repack_info)
     
 @proxy.route('/lender-info', methods=['GET']) # need to install sar
 def lender_info():
@@ -459,12 +466,22 @@ def lender_info():
     return (json.dumps({'node': inter_url, 'containers': containers}), 200)
 
 def init():
-    #for action in controller.all_packages.keys():
-    #    controller.generate_base_image(action)
-        #controller.repack(action)
-    #periodical_repack()
-    #for action in controller.repack_info:
-    #    print(action, controller.repack_info[action])
+    if sys.argv[1] == 'build_images':
+        for action in controller.all_packages.keys():
+            controller.generate_base_image(action)
+            controller.repack(action)
+    elif sys.argv[1] == 'experiment':
+        for action in controller.all_packages.keys():
+            controller.repack(action)
+        
+        periodical_repack()
+        
+        # for action in controller.repack_info:
+        #     print(action, controller.repack_info[action])
+        print('start listening.')
+        server = WSGIServer(('0.0.0.0', inter_port), proxy)
+        server.serve_forever()
+
     '''
     cnt = {}
     for k1 in controller.repack_info:
@@ -482,9 +499,7 @@ def init():
     print(cnt2.values())
     '''
     # process = subprocess.Popen(['sudo', '/root/anaconda3/bin/python3', '/root/gls/intraaction_controller/proxy.py', str(intra_port)])
-    server = WSGIServer(('0.0.0.0', inter_port), proxy)
-    server.serve_forever()
-
+    
 def check_redirect():
     print('######### begin to check redirect.')
     controller.check_redirect()

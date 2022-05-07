@@ -1,2 +1,2 @@
 FROM action_eo_gluerunner
-RUN pip3 --no-cache-dir install aws_requests_auth elasticsearch certifi chardet idna requests urllib3 dynamodb-encryption-sdk cryptography markdown
+RUN pip3 --no-cache-dir install markdown aws_requests_auth elasticsearch certifi chardet idna requests urllib3 tox moto wheel freezegun sure pyutu dynamodb-encryption-sdk cryptography

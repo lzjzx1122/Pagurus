@@ -1,2 +1,2 @@
 FROM action_ep_delivery_table_requests
-RUN pip3 --no-cache-dir install requests dynamodb-encryption-sdk cryptography aws_requests_auth xlsxwriter pandas numpy pyutu
+RUN pip3 --no-cache-dir install aws_requests_auth elasticsearch certifi chardet idna requests urllib3 tox moto wheel freezegun sure pyutu markdown dynamodb-encryption-sdk cryptography

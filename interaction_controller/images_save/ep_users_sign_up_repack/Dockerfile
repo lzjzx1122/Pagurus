@@ -1,2 +1,2 @@
 FROM action_ep_users_sign_up
-RUN pip3 --no-cache-dir install markdown requests xlsxwriter pandas numpy pyutu tox moto wheel freezegun sure dynamodb-encryption-sdk cryptography aws_requests_auth
+RUN pip3 --no-cache-dir install requests xlsxwriter pandas numpy aws_requests_auth pyutu tox moto wheel freezegun sure markdown dynamodb-encryption-sdk cryptography
