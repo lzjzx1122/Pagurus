@@ -58,5 +58,5 @@ It should be noticed that the functions and applications must be created and def
 * [Sharing-aware Function Balancer](https://github.com/lzjzx1122/Pagurus/tree/master/load_balancer)
 * CouchDB Server
 
-&emsp;&emsp;Besides these components of Pagurrus, we also provide two additional prewarm-based policy in Pagurus: OpenWhisk-based Prewarm and SOCK-based Prewarm. You can find their prewarm manager [here](https://github.com/lzjzx1122/Pagurus/tree/master/intraaction_controller/prewarm_manger.py).
+&emsp;&emsp;Besides these components of Pagurrus, we also provide two additional prewarm-based policy in Pagurus: OpenWhisk-based Prewarm and SOCK-based Prewarm. You can find their prewarm manager [here](https://github.com/lzjzx1122/Pagurus/blob/master/intraaction_controller/prewarm_manager.py).
 
