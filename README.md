@@ -47,9 +47,10 @@ It should be noticed that the functions and applications must be created and def
 
 ## Detailed Concepts and Related Components
 
-![Pagurus](https://github.com/lzjzx1122/Pagurus/tree/master/pagurus.png "The Pagurus structure")
-
 Pagurus contains three main components as shown in the figure: intra-function container manager, inter-function container scheduler, and sharing-aware function balancer. Serverless functions are running in Docker containers. The communication between them are thruogh REST APIs.
+
+<div align=center><img width="55%" src="https://github.com/lzjzx1122/Pagurus/blob/master/pagurus.png"></div>
+<!-- ![Pagurus](https://github.com/lzjzx1122/Pagurus/blob/master/pagurus.png "The Pagurus structure") -->
 
 * [Proxy in Docker Container](https://github.com/lzjzx1122/Pagurus/tree/master/container)
 * Inter-Function Container Scheduler
