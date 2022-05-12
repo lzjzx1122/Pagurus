@@ -13,8 +13,6 @@ import couchdb
 import subprocess
 import shutil
 
-
-
 class PrewarmManager:
     def __init__(self, prewarm_limit, port_manager, package_counter):
         self.prewarm_limit = prewarm_limit
@@ -24,8 +22,9 @@ class PrewarmManager:
         self.prewarm_pools = []
         for _ in range(prewarm_limit):
             self.prewarm()
-        self.function_path = '/root/sosp/Pagurus/interaction_controller/aws_actions/'
-        self.virtualenv_path = '/root/sosp/Pagurus/intraaction_controller/virtualenv/'
+            # print('prewarm', _)
+        self.function_path = '/root/Pagurus/interaction_controller/aws_actions/'
+        self.virtualenv_path = '/root/Pagurus/intraaction_controller/virtualenv/'
 
     def prewarm(self):
         port = self.port_manager.get()
@@ -39,15 +38,17 @@ class PrewarmManager:
             return None, 0
         source_path = self.function_path + function_name
         virtualenv_path = self.virtualenv_path + function_name + '/lib/python3.6/site-packages'
-        container_dir = file_controller.get_container_dir(container.container.id)
+        container_dir = file_controller.get_container_packages_dir(container.container.id)
         # send virtual environment to docker
         p_start = time.time()
         if not self.package_counter.no_package(function_name):
             if os.path.exists(virtualenv_path):
-                os.system('docker cp ' + virtualenv_path + ' ' + container.container.id + ':/proxy/exec/site-packages/')
+                # os.system('docker cp ' + virtualenv_path + ' ' + container.container.id + ':/proxy/exec/site-packages/')
+                shutil.copytree(virtualenv_path, container_dir + '/site-packages')
         p_end = time.time()
         # copy source code to container
-        os.system('cp -rf ' + source_path + '/* ' + container_dir)
+        shutil.copy(source_path + '/main.py', container_dir)
+        # os.system('cp -rf ' + source_path + '/* ' + container_dir)
         # generate another base container
         job = gevent.spawn_later(0.1, self.prewarm) 
         # print('----Prewarmed container for ' + function_name + ', Container name: ' + container.container.name + '----')
@@ -55,7 +56,7 @@ class PrewarmManager:
 
 class PackageCounter:
     def __init__(self):
-        self.package_size_path = '/users/Linsong/Pagurus/intraaction_controller/build_file/packages.json'
+        self.package_size_path = '/root/Pagurus/intraaction_controller/build_file/packages.json'
         self.build_limit = 4
         self.package_size = dict()
         self.counter = dict()
@@ -110,9 +111,9 @@ class SockPrewarmManager:
         self.client = docker.from_env()
         self.port_manager = port_manager
         self.prewarm_pools = []
-        self.function_path = '/root/sosp/Pagurus/interaction_controller/aws_actions/'
-        self.virtualenv_path = '/root/sosp/Pagurus/intraaction_controller/virtualenv/'
-        self.container_path = '/root/sosp/Pagurus/prewarm_container'
+        self.function_path = '/root/Pagurus/interaction_controller/aws_actions/'
+        self.virtualenv_path = '/root/Pagurus/intraaction_controller/virtualenv/'
+        self.container_path = '/root/Pagurus/prewarm_container'
         self.package_counter = package_counter
         self.aliases = {'pillow': ['Pillow'], 'PyYAML': ['yaml', 'YAML'], 'scikit-video': ['skvideo']}
         db_server = couchdb.Server('http://openwhisk:openwhisk@127.0.0.1:5984/')
@@ -141,6 +142,7 @@ class SockPrewarmManager:
         # gevent.joinall([thread])
         for _ in range(self.prewarm_limit):
             self.prewarm()
+            # print('prewarm', _)
         self.available = True
 
     def prewarm(self):
@@ -170,7 +172,7 @@ class SockPrewarmManager:
             return None, 0
         source_path = self.function_path + function_name
         virtualenv_path = self.virtualenv_path + function_name
-        container_dir = file_controller.get_container_dir(container.container.id)
+        container_dir = file_controller.get_container_packages_dir(container.container.id)
         # send virtual environment to docker
         p_start = time.time()
         devNull = open(os.devnull, 'w')
@@ -198,7 +200,7 @@ class SockPrewarmManager:
             ignore_prefix = list()
             for package in self.top_packages:
                 ignore_prefix.append(package + '*')
-            print(ignore_prefix)
+            # print(ignore_prefix)
             shutil.copytree(source, destination, ignore=shutil.ignore_patterns(*tuple(ignore_prefix)))
 
         p_end = time.time()

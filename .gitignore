@@ -1,2 +1,6 @@
 __pycache__/
 .vscode/
+aws/trace
+aws/expected_result
+azure/trace
+azure/expected_result

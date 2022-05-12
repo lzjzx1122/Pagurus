@@ -1,2 +1,2 @@
 FROM action_tcp_check_transcribe
-RUN pip3 --no-cache-dir install aws_requests_auth elasticsearch certifi chardet idna requests urllib3 pyutu tox moto wheel freezegun sure
+RUN pip3 --no-cache-dir install aws_requests_auth elasticsearch certifi chardet idna requests urllib3 markdown dynamodb-encryption-sdk cryptography pyutu tox moto wheel freezegun sure

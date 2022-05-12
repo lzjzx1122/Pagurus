@@ -14,13 +14,13 @@
                         "version": "1.4.0",
                         "size": 1368
                     },
-                    "pandas":{
-                        "version": "0.24.2",
-                        "size": 48612
-                    },
                     "numpy": {
                         "version": "1.16.6",
                         "size": 70960
+                    },
+                    "pandas":{
+                        "version": "0.24.2",
+                        "size": 48612
                     }
                 }
             }

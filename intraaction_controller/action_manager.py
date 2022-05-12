@@ -27,7 +27,7 @@ class ActionManager:
                 gevent.sleep(0.01)
 
     def have_lender(self, action_name):
-        # print('send have_lender: ', action_name)
+        # print('have_lender: ', action_name)
         while True:
             try:
                 res = requests.post('http://0.0.0.0:'+ str(self.inter_port) +  '/have_lender', json = {'action_name': action_name})

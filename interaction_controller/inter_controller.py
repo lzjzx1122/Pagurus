@@ -21,8 +21,8 @@ import sys
 class inter_controller():
     def __init__(self, intra_url, package_path):
         self.intra_url = intra_url
-        self.similar_actions = 30
-        self.sharing_actions = 8
+        self.similar_actions = 40
+        self.sharing_actions = 8        
         self.repacked_renters = {}
         self.renter_lender_info = {} #{'renter A': {'lender B': cos, 'lender C':cos}}
         self.lender_renter_info = {} #{'lender A': {'renter B': cos, 'renter C':cos}}
@@ -32,7 +32,8 @@ class inter_controller():
         self.last_request = {}
         self.package_path = package_path
         self.load_packages()
-        self.update_repack_cycle = 60 * 30
+        self.one_second = 2 if sys.argv[1] == 'aws' else 1
+        self.update_repack_cycle = 60 * 60 / self.one_second
         self.check_redirect_cycle = 60
 
         db_server = couchdb.Server('http://openwhisk:openwhisk@127.0.0.1:5984/')
@@ -259,7 +260,7 @@ class inter_controller():
                         self.renter_lender_info.update({k: {lender: v}})
                     else:
                         self.renter_lender_info[k].update({lender: v})
-        self.db_repack[str(time.time())] = {'repack_info': self.repack_info, 'lender_renter_info': self.lender_renter_info, 'renter_lender_info': self.renter_lender_info}
+        self.db_repack[str(time.time())] = {'repack_info': self.repack_info, 'lender_renter_info': self.lender_renter_info, 'renter_lender_info': self.renter_lender_info, 'cold_start': cold_start}
         # print('lender_renter:', self.lender_renter_info)
         # print('renter_lender:', self.renter_lender_info)
 
@@ -333,7 +334,10 @@ intra_url = 'http://0.0.0.0' + ':' + str(intra_port) + '/'
 head_url = 'http://0.0.0.0:5100'
 
 # An inter-controller instance.            
-controller = inter_controller(intra_url, '/users/Linsong/Pagurus/interaction_controller/build_file/aws_packages.json')
+if sys.argv[1] == 'aws':
+    controller = inter_controller(intra_url, '/root/Pagurus/interaction_controller/build_file/aws_packages.json')
+elif sys.argv[1] == 'azure':
+    controller = inter_controller(intra_url, '/root/Pagurus/interaction_controller/build_file/azure_packages.json')
 
 # a Flask instance.
 proxy = Flask(__name__)
@@ -366,8 +370,6 @@ def listen():
             time.sleep(0.01)       
     end = time.time()
     db[request_id] = {'start': start, 'end': end, 'end-to-end': end - start}
-
-    # print('listen end------')
 
     return ('OK', 200)
     
@@ -470,7 +472,7 @@ def init():
         for action in controller.all_packages.keys():
             controller.generate_base_image(action)
             controller.repack(action)
-    elif sys.argv[1] == 'experiment':
+    elif sys.argv[1] == 'aws' or sys.argv[1] == 'azure':
         for action in controller.all_packages.keys():
             controller.repack(action)
         

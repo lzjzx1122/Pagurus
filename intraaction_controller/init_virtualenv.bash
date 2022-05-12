@@ -74,8 +74,8 @@ virtualenv -p /usr/bin/python3 ./virtualenv/cer_lambda
 source ./virtualenv/cer_lambda/bin/activate
 pip3 install requests==2.25.1
 pip3 install xlsxwriter==1.4.0
-pip3 install pandas==0.24.2
 pip3 install numpy==1.16.6
+pip3 install pandas==0.24.2
 deactivate
 virtualenv -p /usr/bin/python3 ./virtualenv/fmp_twitter_streaming
 source ./virtualenv/fmp_twitter_streaming/bin/activate

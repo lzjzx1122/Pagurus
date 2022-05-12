@@ -1,2 +1,2 @@
 FROM action_ep_warehouse_table_update
-RUN pip3 --no-cache-dir install markdown requests xlsxwriter pandas numpy dynamodb-encryption-sdk cryptography aws_requests_auth pyutu
+RUN pip3 --no-cache-dir install tox moto wheel freezegun sure pyutu markdown aws_requests_auth elasticsearch certifi chardet idna requests urllib3 dynamodb-encryption-sdk cryptography

@@ -1,8 +1,8 @@
 import time
 import requests
 import xlsxwriter
-import pandas
-import numpy
+# import pandas
+# import numpy
 
 def main(param):
     start = time.time()

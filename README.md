@@ -13,12 +13,20 @@ git clone https://github.com/lzjzx1122/Pagurus.git
 ./install.sh
 ```
 &emsp;&emsp;Then you can get start Pagurus by the following command:
+- Run the inter_controller:
 ```
-xxxxxxx
+python3 inter_controller/inter_controller.py bench
 ```
+The `bench` can be `aws` or `azure`.
+- Run the intra_controller:
+```
+python3 intra_controller/intra_controller.py net_port max_lender_num default_zygote_time option bench 
+```
+For example, `python3 intra_controller/intra_controller.py 5001 1 60 pagurus aws`.
+
 &emsp;&emsp;Now Pagurus is successfully started and ready for serving function queries. You can send a query for test by the following command:
 ```
-curl -X http://0.0.0.0:5000/listen -d {"action":"float_operation", "params": {'param': 1000000}}
+curl -X http://0.0.0.0:5000/listen -d {"action_name": 'cs_bot', "params": {'runtime': 100}}
 ```
 and returns:
 ```

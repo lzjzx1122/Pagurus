@@ -1,5 +1,7 @@
 import os
 import time
+import sys
+import importlib
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 from multiprocessing import Process
@@ -21,6 +23,7 @@ class ActionRunner:
 
         # compile the python file first
         filename = os.path.join(exec_path, action + '/' + default_file)
+        importlib.invalidate_caches()
         with open(filename, 'r') as f:
             code = compile(f.read(), filename, mode='exec')
 
@@ -34,6 +37,7 @@ class ActionRunner:
         self.action_context['data'] = inp
 
         # run the action
+        #out = eval('main(data)', self.action_context)
         out = eval('main(data)', self.action_context)
         return out
 

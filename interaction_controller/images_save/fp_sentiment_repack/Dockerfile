@@ -1,2 +1,2 @@
 FROM action_fp_sentiment
-RUN pip3 --no-cache-dir install markdown aws_requests_auth elasticsearch certifi chardet idna requests urllib3 tox moto wheel freezegun sure dynamodb-encryption-sdk cryptography
+RUN pip3 --no-cache-dir install tox moto wheel freezegun sure requests dynamodb-encryption-sdk cryptography aws_requests_auth pyutu xlsxwriter pandas numpy markdown

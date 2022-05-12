@@ -1,2 +1,2 @@
 FROM action_sc_list_cart
-RUN pip3 --no-cache-dir install tox moto wheel freezegun sure requests xlsxwriter pandas numpy markdown dynamodb-encryption-sdk cryptography aws_requests_auth
+RUN pip3 --no-cache-dir install aws_requests_auth elasticsearch certifi chardet idna requests urllib3 pyutu markdown tox moto wheel freezegun sure dynamodb-encryption-sdk cryptography

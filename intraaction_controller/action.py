@@ -16,7 +16,7 @@ from action_manager import ActionManager
 from port_manager import PortManager
 from prewarm_manager import PrewarmManager, SockPrewarmManager, PackageCounter
 
-one_second = 2
+one_second = 2 if sys.argv[5] == 'aws' else 1
 # life time of three different kinds of containers
 exec_lifetime = 900 / one_second # 15 mins / one_second
 lender_lifetime = 900 / one_second # 15 mins / one_second
@@ -105,7 +105,8 @@ def update_container():
 
     total_exec, total_lender, total_renter = 0, 0, 0
     for action in all_action.values():
-        action.update_container()
+        if sys.argv[5] == 'aws':
+            action.update_container()
         total_exec += action.num_exec
         total_lender += action.num_lender
         total_renter += action.num_renter
@@ -247,7 +248,7 @@ class Action:
         container, p_time = self.prewarm_manager.get_prewarmed_container(self.name)
         if container != None:
             self.init_container(container)
-            self.num_exec += 1
+            self.num_exec += 1 ### !!! Potential Bug!
         prewarm_end = time.time()
         print('----Prewarm time: ', prewarm_end - prewarm_start, '----')
         return container
@@ -288,6 +289,7 @@ class Action:
                 container = self.rent_container()
                 container_way = 'rent'
         rent_end = time.time()
+        # print('rent:', container)
         
         #print('prewarm result', container)
         # 1.3 create a new container
@@ -297,12 +299,15 @@ class Action:
             start_way = 'cold'
             container = self.create_container()
             container_way = 'create'
+            # print('create new')
         create_end = time.time()
 
         # the number of exec container hits limit
         if container is None:
             self.num_processing -= 1
             return
+
+        lasttime = container.lasttime
 
         req = self.rq.pop(0)
         self.num_processing -= 1
@@ -320,7 +325,7 @@ class Action:
         req.result.set(res)
         
         # 3. put the container back into pool
-        self.put_container(container)
+        self.put_container(container, False, lasttime)
 
         if container_way == 'rent' or container_way == 'create':
             self.action_manager.cold_start(self.name)
@@ -349,13 +354,12 @@ class Action:
         if res is None:
             return None
         
+        self.num_renter += 1
+        
         container_id, port = res
         container = Container.inherit(self.client, container_id, port, 'renter')
-        self.num_renter += 1
         self.init_container(container)
-        # self.put_container(container)
-        # return True
-
+        
         return container
 
     # create a new container
@@ -389,31 +393,62 @@ class Action:
         
         self.init_container(container)
         container.lasttime = tmp_lasttime
-        self.put_container(container)
+        self.put_container(container, new_flag=True)
         lend_log = {'time': time.time(), 'action': self.name, 'lender_pool': self.num_lender, 'type': 'create'}
         self.db_lend[self.get_db_key()] = lend_log 
         return container
 
     # put the container into one of the three pool, according to its attribute
-    def put_container(self, container):
+    def put_container(self, container, new_flag, lasttime=0):
+        if container.deleted:
+            container.destroy()
+            self.port_manager.put(container.port)
+            return 
+        
+        # print('container:', container.attr, new_flag)
+
         if container.attr == 'exec':
             self.exec_pool.append(container)
-        elif container.attr == 'renter':
+        elif container.attr == 'renter' or container.attr == 'self_renter':
             self.renter_pool.append(container)
         elif container.attr == 'lender':
-            self.lender_pool.append(container)
-
+            if new_flag:
+                self.lender_pool.append(container)
+            else:
+                # container.attr = 'self_renter'
+                # self.renter_pool.append(container)
+                # self.num_renter += 1
+                container.attr = 'exec'
+                self.exec_pool.append(container)
+                self.num_exec += 1
+                self.num_lender -= 1
+                # print('change:', self.num_renter, self.num_lender, container.attr)
+                gevent.spawn_later(0.1, self.create_container_with_repacked_image, lasttime)
+        
+                # self.action_manager.no_lender(self.name)
+            
     # repack a executant container into a lender container
     # executant container's port will be reused
     def repack_container(self, container):
-        container.destroy()
-
+        self.num_lender += 1    
+        self.num_exec -= 1
+        
         if self.pack_img_name is None:
             self.pack_img_name = self.action_manager.create_pack_image(self.name)
         
-        container = Container.create(self.client, self.pack_img_name, container.port, 'lender')
-        self.init_container(container)
-        return container
+        new_container = Container.create(self.client, self.pack_img_name, self.port_manager.get(), 'lender')
+        self.init_container(new_container)
+        new_container.lasttime = container.lasttime
+        self.lender_pool.append(new_container)
+        
+        if container in self.exec_pool:
+            self.exec_pool.remove(container)
+            container.destroy()
+            self.port_manager.put(container.port)
+        else:
+            container.future_delete() 
+
+        return new_container
 
     # give out a lender container to interaction controller
     # if there's no lender container, return None
@@ -493,6 +528,8 @@ class Action:
 
     # do the repack and cleaning work regularly
     def repack_and_clean(self):
+        old_num_lender = self.num_lender
+
         self.repack_clean = gevent.spawn_later(repack_clean_interval, self.repack_and_clean)
         
         # repack containers
@@ -536,19 +573,21 @@ class Action:
             '''
         
         if repack_container is not None and self.num_lender < self.max_lender_pool:
-            self.num_exec -= 1
-            tmp_lasttime = repack_container.lasttime
-            self.exec_pool.remove(repack_container)
-            repack_container = self.repack_container(repack_container)
-            repack_container.lasttime = tmp_lasttime
-            self.lender_pool.append(repack_container)
-            self.num_lender += 1
+            self.repack_container(repack_container)
+            # self.num_exec -= 1
+            # tmp_lasttime = repack_container.lasttime
+            # self.exec_pool.remove(repack_container)
+            # repack_container = self.repack_container(repack_container)
+            # repack_container.lasttime = tmp_lasttime
+            # self.lender_pool.append(repack_container)
+            # self.num_lender += 1
             lend_log = {'time': time.time(), 'action': self.name, 'lender_pool': self.num_lender, 'type': 'repack'}
             self.db_lend[self.get_db_key()] = lend_log
             
-        if len(self.lender_pool) == 1:
+        if self.num_lender == 1 and old_num_lender == 0:
             self.action_manager.have_lender(self.name)
-        elif len(self.lender_pool) == 0:
+        
+        if self.num_lender == 0 and old_num_lender > 0:
             self.action_manager.no_lender(self.name)
     
     

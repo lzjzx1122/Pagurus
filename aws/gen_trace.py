@@ -23,7 +23,7 @@ for app in wf:
         wf[app][func]['duration'] /= 2
         wf[app][func]['start_time'] /= 2
 
-for i in range(1, 2):
+for i in range(2, 3):
     
     lambd = []
     for _ in range(2):
@@ -49,6 +49,7 @@ for i in range(1, 2):
         invo = []
         for _ in invo_:
             invo.append(int(_))
+        invo[0] = 1 
         # invo[0] = 1 if app == 'aws-serverless-chatbot-sample' else 0
         trace[app] = {'lambda': l, 'invo': invo, 'functions': wf[app]}
 

@@ -15,6 +15,3 @@ def main(param):
 
     latency = time.time() - start
     return {"latency": latency}
-
-while True:
-    pass

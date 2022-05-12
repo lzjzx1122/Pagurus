@@ -1,2 +1,2 @@
 FROM action_ep_payment_process_payment
-RUN pip3 --no-cache-dir install requests pyutu markdown xlsxwriter pandas numpy tox moto wheel freezegun sure dynamodb-encryption-sdk cryptography aws_requests_auth
+RUN pip3 --no-cache-dir install aws_requests_auth elasticsearch certifi chardet idna requests urllib3 markdown tox moto wheel freezegun sure dynamodb-encryption-sdk cryptography pyutu

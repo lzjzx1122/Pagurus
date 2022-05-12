@@ -54,8 +54,14 @@ def end():
 
 def main():
     global server
-    file_controller.init('/users/Linsong/Pagurus/interaction_controller/aws_actions/', '/var/run/pagurus/')
-    action.init('/users/Linsong/Pagurus/interaction_controller/aws_actions/action_config.yaml', (15000, 20000), couchdb_url, db_name)
+   
+    if sys.argv[5] == 'aws':
+        file_controller.init('/root/Pagurus/interaction_controller/aws_actions/', '/var/run/pagurus/', '/root/Pagurus/intraaction_controller/virtualenv/', '/mnt/pagurus/')
+        action.init('/root/Pagurus/interaction_controller/aws_actions/action_config.yaml', (15000, 20000), couchdb_url, db_name)
+    elif sys.argv[5] == 'azure':
+        file_controller.init('/root/Pagurus/interaction_controller/azure_actions/', '/var/run/pagurus/', '/root/Pagurus/intraaction_controller/virtualenv/', '/mnt/pagurus/')
+        action.init('/root/Pagurus/interaction_controller/azure_actions/action_config.yaml', (15000, 20000), couchdb_url, db_name)     
+        
     server = WSGIServer(('0.0.0.0', int(sys.argv[1])), proxy)
     server.serve_forever()
 

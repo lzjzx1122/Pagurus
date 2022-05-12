@@ -5,7 +5,7 @@
 FROM python:3.7-slim
 # FROM docker.io/jrottenberg/ffmpeg:4.1-alpine
 
-# COPY pip.conf /etc/pip.conf
+COPY pip.conf /etc/pip.conf
 
 # RUN apt-get -y update && \
 #    apt-get -y upgrade

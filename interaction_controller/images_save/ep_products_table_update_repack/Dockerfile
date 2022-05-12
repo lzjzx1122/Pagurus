@@ -1,2 +1,2 @@
 FROM action_ep_products_table_update
-RUN pip3 --no-cache-dir install requests pyutu dynamodb-encryption-sdk cryptography tox moto wheel freezegun sure markdown aws_requests_auth xlsxwriter pandas numpy
+RUN pip3 --no-cache-dir install aws_requests_auth elasticsearch certifi chardet idna requests urllib3 pyutu markdown dynamodb-encryption-sdk cryptography tox moto wheel freezegun sure
