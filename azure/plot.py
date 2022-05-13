@@ -22,8 +22,8 @@ for i in range(1, len(y2)):
 x2 = np.arange(0,len(y2))
 plt.plot(x2,y2,label='OpenWhisk',color="#3685fe",linewidth=5)
 
-ax1.axhline(y=27447,  color='tab:red', linestyle='--', linewidth=3)
-ax1.axhline(y=4149, color='tab:red', linestyle='--', linewidth=3)
+# ax1.axhline(y=27447,  color='tab:red', linestyle='--', linewidth=3)
+# ax1.axhline(y=4149, color='tab:red', linestyle='--', linewidth=3)
 
 y1 = res["pagurus_cold"].values
 for i in range(1, len(y1)):
@@ -74,8 +74,8 @@ for i in range(1, max_cold):
 for i in range(max_cold):
     cnt2[i] /= total_function
 
-ax1.axhline(y=27447,  color='tab:red', linestyle='--', linewidth=3)
-ax1.axhline(y=4149, color='tab:red', linestyle='--', linewidth=3)
+# ax1.axhline(y=27447,  color='tab:red', linestyle='--', linewidth=3)
+# ax1.axhline(y=4149, color='tab:red', linestyle='--', linewidth=3)
 
 cnt1 = np.zeros(max_cold)
 for i in range(len(y1)):
