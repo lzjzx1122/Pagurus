@@ -24,7 +24,9 @@ python3 intra_controller/intra_controller.py net_port max_lender_num default_zyg
 ```
 For example, `python3 intra_controller/intra_controller.py 5001 1 60 pagurus aws`.
 
-&emsp;&emsp;Now Pagurus is successfully started and ready for serving function queries. You can send a query for test by the following command:
+&emsp;&emsp;Now Pagurus is successfully started and ready for serving function queries. 
+<!-- 
+You can send a query for test by the following command:
 ```
 curl -X http://0.0.0.0:5000/listen -d {"action_name": 'cs_bot', "params": {'runtime': 100}}
 ```
@@ -35,7 +37,7 @@ xxxxxxxxxxxxxxxxxxxx
 &emsp;&emsp;All the invoked functions and results are logged in the CouchDB Server, and you can get the invocation results and traces by:
 ```
 curl -X xxxxx
-``` 
+```  -->
 
 ## Applications and Functions
 
