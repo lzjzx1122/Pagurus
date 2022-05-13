@@ -37,11 +37,16 @@ xxxxxxxxxxxxxxxxxxxx
 ```
 curl -X xxxxx
 ```  -->
-&emsp;&emsp;Now Pagurus is successfully started and ready for serving function queries. And you can enter ```aws``` or ```azure``` directory to run the experiments in our paper:
+&emsp;&emsp;Now Pagurus is successfully started and ready for serving function queries. 
+
+## Run Aws and Azure Benchmark.
+
+You can enter ```aws``` or ```azure``` directory to run the experiments in our paper:
 ```
 python3 run_experiment.py
 ```
 
+This script will help you open the `intra_controller` and `inter_controller`, and send some function invocations to `inter_controller`. Therefore, you don't need to open `intra_controller` and `inter_controller` with this script.
 
 ## Applications and Functions
 
