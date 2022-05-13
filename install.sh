@@ -18,6 +18,7 @@ sudo apt install python3-virtualenv -y
 # build base image
 cd container
 docker build --no-cache -t pagurus_base .
+docker build --no-cache -t pagurus_base_repack .
 cd ..
 
 # build prewarm image
@@ -27,3 +28,6 @@ cd ..
 
 # build images for functions
 python3 inter_controller/inter_controller.py build_images
+
+# build virtualenv for prewarm
+bash intra_controller/init_virtualenv.bash
