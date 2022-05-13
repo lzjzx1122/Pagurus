@@ -8,4 +8,4 @@ for container in containers:
     if container.name != 'couchdb':
         container.remove(force=True)
 
-os.system('docker rm $(docker ps -a -q)')
+# os.system('docker rm $(docker ps -a -q)')

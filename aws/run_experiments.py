@@ -5,10 +5,14 @@ from multiprocessing import Process
 import subprocess
 import sys
 
-result_dir = '/root/Pagurus/aws/expected_result/1/'
+result_dir = '/root/Pagurus/aws/result/1/'
 trace_dir = '/root/Pagurus/aws/trace/1/'
 
-for option in ['pagurus', 'openwhisk', 'prewarm', 'sock']:    
+if os.path.exists(result_dir):
+    os.system('rm -rf ' + result_dir)
+os.system('mkdir ' + result_dir)
+
+for option in ['prewarm', 'sock', 'pagurus', 'openwhisk']: # ['pagurus', 'openwhisk', 'prewarm', 'sock']:    
     option_dir = result_dir + option
 
     if os.path.exists(option_dir):
