@@ -12,7 +12,7 @@
 git clone https://github.com/lzjzx1122/Pagurus.git
 ./install.sh
 ```
-&emsp;&emsp;Then you can get start Pagurus by the following command:
+&emsp;&emsp;This shell script will install all dependencies and then start Pagurus by the following command:
 - Run the inter_controller:
 ```
 python3 inter_controller/inter_controller.py bench
