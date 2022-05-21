@@ -5,8 +5,10 @@ from multiprocessing import Process
 import subprocess
 import sys
 
-result_dir = '/root/Pagurus/azure/result/1/'
-trace_dir = '/root/Pagurus/azure/trace/1/'
+test_number = sys.argv[1]
+
+result_dir = '/root/Pagurus/azure/result/'+test_number+'/'
+trace_dir = '/root/Pagurus/azure/trace/'+test_number+'/'
 
 if os.path.exists(result_dir):
     os.system('rm -rf ' + result_dir)
