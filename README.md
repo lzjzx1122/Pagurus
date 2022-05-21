@@ -43,7 +43,7 @@ curl -X xxxxx
 
 You can enter ```aws``` or ```azure``` directory to run the experiments in our paper:
 ```
-python3 run_experiment.py
+python3 run_experiment.py <test_number>
 ```
 
 This script will help you open the `intra_controller` and `inter_controller`, and send some function invocations to `inter_controller`. Therefore, you don't need to open `intra_controller` and `inter_controller` with this script.
