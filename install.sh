@@ -27,7 +27,7 @@ docker build --no-cache -t pagurus_prewarm_base .
 cd ..
 
 # build images for functions
-python3 inter_controller/inter_controller.py build_images
+python3 interaction_controller/inter_controller.py build_images
 
 # build virtualenv for prewarm
-bash intra_controller/init_virtualenv.bash
+bash intraaction_controller/init_virtualenv.bash
