@@ -22,24 +22,10 @@ tick_labels = ['bot', ' ', ' ', ' ', ' ', ' ',
           'rek', ' ', ' ', 'file', ' ', '   tok', ' ', ' ', ' ',
           ' ', 'cart', ' ', ' ', ' ', '      pod', ' ', ' ', 'rep']
 
-pagurus_t = list(data['pagurus'].values)
-prewarm_t = list(data['prewarm'].values)
-sock_t = list(data['sock'].values)
-openwhisk_t = list(data['openwhisk'].values)
-
-print(pagurus_t)
-print(prewarm_t)
-print(sock_t)
-print(openwhisk_t)
-
-pagurus = []
-prewarm = []
-sock = []
-
-for i in range(1,len(pagurus_t)):
-    pagurus.append(pagurus_t[i]/openwhisk_t[i])
-    prewarm.append(prewarm_t[i]/openwhisk_t[i])
-    sock.append(sock_t[i]/openwhisk_t[i])
+pagurus = list(data['pagurus'].values)
+prewarm = list(data['prewarm'].values)
+sock = list(data['sock'].values)
+openwhisk = list(data['openwhisk'].values)
 
 fig, (ax, ax2) = plt.subplots(1, 2, gridspec_kw=dict(width_ratios=[9,1]),constrained_layout = True)
 width = 0.23      # the width of the bars: can also be len(x) sequence
@@ -74,13 +60,11 @@ ax.set_ylabel('Percentage of \n Cold Startups Remained', fontsize = 30)
 
 
 x = np.arange(4)
-
-pagurus = pagurus_t[0]
-prewarm = prewarm_t[0]
-sock = sock_t[0]
-openwhisk = openwhisk_t[0]
+pagurus = 247
+prewarm = 451
+sock = 522
+openwhisk = 1463
 tmpx = np.arange(4)
-tmpy = np.array([pagurus,prewarm,sock,openwhisk])
 
 ax2.set_xlim(-0.5, 3.5)
 width = 0.5
@@ -106,6 +90,9 @@ fig.savefig("result/fig_11.pdf",bbox_inches='tight')
 
 
 
+
+
+
 # generate Fig 12
 data_prewarm = pd.read_csv('result/startup_time.csv')
 openwhisk = list(data_prewarm['openwhisk'].values)
@@ -114,15 +101,15 @@ prewarm = list(data_prewarm['prewarm'].values)
 # random = list(data_prewarm['random'].values)
 sock = list(data_prewarm['sock'].values)
 
-names = ['cs_bot', 'ep_users_sign_up', 'ep_products_table_update', 'ep_orders_create_order', 'ep_products_validate', 'ep_delivery_on_package_created',
-          'ep_payment_validate', 'ep_warehouse_on_order_events', 'ep_warehouse_table_update', 'ep_payment_cancel_payment', 'ep_delivery_table_requests', 'ep_payment_process_payment',
-          'ep_orders_on_event', 'ep_orders_table_update', 'ep_payment_update_payment', 'df_union', 'eo_athenarunner', 'eo_gluerunner', 'eo_ons3objectcreated', 'fmp_twitter_streaming',
-          'fmp_twitterddb', 'fmp_comparefaces', 'fp_notification', 'fp_conversion', 'fp_sentiment', 't_payment_method', 't_ddb_encrypt_item', 'sc_add_to_cart', 'sc_update_cart',
+names = ['cs_bot', 'ep_users_sign_up', 'ep_products_table_update', 'ep_orders_create_order', 'ep_products_validate', 'ep_delivery_on_package_created', 
+          'ep_payment_validate', 'ep_warehouse_on_order_events', 'ep_warehouse_table_update', 'ep_payment_cancel_payment', 'ep_delivery_table_requests', 'ep_payment_process_payment', 
+          'ep_orders_on_event', 'ep_orders_table_update', 'ep_payment_update_payment', 'df_union', 'eo_athenarunner', 'eo_gluerunner', 'eo_ons3objectcreated', 'fmp_twitter_streaming', 
+          'fmp_twitterddb', 'fmp_comparefaces', 'fp_notification', 'fp_conversion', 'fp_sentiment', 't_payment_method', 't_ddb_encrypt_item', 'sc_add_to_cart', 'sc_update_cart', 
           'sc_list_cart', 'sc_migrate_cart', 'sc_checkout_cart', 'sc_delete_from_cart', 'tcp_download_podcast', 'tcp_check_transcribe', 'tcp_process_podcast_rss', 'tcp_upload_to_elasticsearch', 'cer_lambda',]
-tick_labels = ['bot', ' ', ' ', ' ', ' ', ' ',
-          ' ', 'eco', ' ', ' ', ' ', ' ',
-          ' ', ' ', ' ',  'ddns', ' ', ' etl', ' ', ' ',
-          'rek', ' ', ' ', 'file', ' ', '   tok', ' ', ' ', ' ',
+tick_labels = ['bot', ' ', ' ', ' ', ' ', ' ', 
+          ' ', 'eco', ' ', ' ', ' ', ' ', 
+          ' ', ' ', ' ',  'ddns', ' ', ' etl', ' ', ' ', 
+          'rek', ' ', ' ', 'file', ' ', '   tok', ' ', ' ', ' ', 
           ' ', 'cart', ' ', ' ', ' ', '     pod', ' ', ' ', 'rep']
 
 plt.rcParams.update({'font.size': 24})
@@ -154,21 +141,26 @@ ax.plot(x, sock, color='#9ac9db',linewidth=3,label='SOCK',marker='^', ms=12)
 plt.xlabel('Application Name', fontsize = 28)
 plt.ylabel('Startup Latencies (s)',fontsize = 28)
 ax.legend(ncol=2, fontsize=24,loc = 'upper left',handlelength=1.5)
+# fig.savefig("../figures/"+"time_line"+".pdf", bbox_inches='tight')
+# plt.show()
 fig.savefig("result/fig_12.pdf",bbox_inches='tight')
+
+
+
 
 
 #generate Fig 13a
 data = pd.read_csv('result/e2e_latency.csv')
 
-names = ['cs_bot', 'ep_users_sign_up', 'ep_products_table_update', 'ep_orders_create_order', 'ep_products_validate', 'ep_delivery_on_package_created',
-          'ep_payment_validate', 'ep_warehouse_on_order_events', 'ep_warehouse_table_update', 'ep_payment_cancel_payment', 'ep_delivery_table_requests', 'ep_payment_process_payment',
-          'ep_orders_on_event', 'ep_orders_table_update', 'ep_payment_update_payment', 'df_union', 'eo_athenarunner', 'eo_gluerunner', 'eo_ons3objectcreated', 'fmp_twitter_streaming',
-          'fmp_twitterddb', 'fmp_comparefaces', 'fp_notification', 'fp_conversion', 'fp_sentiment', 't_payment_method', 't_ddb_encrypt_item', 'sc_add_to_cart', 'sc_update_cart',
+names = ['cs_bot', 'ep_users_sign_up', 'ep_products_table_update', 'ep_orders_create_order', 'ep_products_validate', 'ep_delivery_on_package_created', 
+          'ep_payment_validate', 'ep_warehouse_on_order_events', 'ep_warehouse_table_update', 'ep_payment_cancel_payment', 'ep_delivery_table_requests', 'ep_payment_process_payment', 
+          'ep_orders_on_event', 'ep_orders_table_update', 'ep_payment_update_payment', 'df_union', 'eo_athenarunner', 'eo_gluerunner', 'eo_ons3objectcreated', 'fmp_twitter_streaming', 
+          'fmp_twitterddb', 'fmp_comparefaces', 'fp_notification', 'fp_conversion', 'fp_sentiment', 't_payment_method', 't_ddb_encrypt_item', 'sc_add_to_cart', 'sc_update_cart', 
           'sc_list_cart', 'sc_migrate_cart', 'sc_checkout_cart', 'sc_delete_from_cart', 'tcp_download_podcast', 'tcp_check_transcribe', 'tcp_process_podcast_rss', 'tcp_upload_to_elasticsearch', 'cer_lambda',]
-tick_labels = ['bot', ' ', ' ', ' ', ' ', ' ',
-          ' ', 'eco', ' ', ' ', ' ', ' ',
-          ' ', ' ', ' ',  'ddns', ' ', 'etl', ' ', ' ',
-          'rek', ' ', ' ', 'file', ' ', '   tok', ' ', ' ', ' ',
+tick_labels = ['bot', ' ', ' ', ' ', ' ', ' ', 
+          ' ', 'eco', ' ', ' ', ' ', ' ', 
+          ' ', ' ', ' ',  'ddns', ' ', 'etl', ' ', ' ', 
+          'rek', ' ', ' ', 'file', ' ', '   tok', ' ', ' ', ' ', 
           ' ', 'cart', ' ', ' ', ' ', '      pod', ' ', ' ', 'rep']
 
 openwhisk = list(data['openwhisk'].values)
@@ -203,18 +195,20 @@ ax.legend(fontsize=22,ncol = 2,loc = 'upper left')
 fig.savefig("result/fig_13_a.pdf",bbox_inches='tight')
 
 
+
+
 # generate Fig 13b
 data = pd.read_csv('result/e2e_latency.csv')
 
-names = ['cs_bot', 'ep_users_sign_up', 'ep_products_table_update', 'ep_orders_create_order', 'ep_products_validate', 'ep_delivery_on_package_created',
-          'ep_payment_validate', 'ep_warehouse_on_order_events', 'ep_warehouse_table_update', 'ep_payment_cancel_payment', 'ep_delivery_table_requests', 'ep_payment_process_payment',
-          'ep_orders_on_event', 'ep_orders_table_update', 'ep_payment_update_payment', 'df_union', 'eo_athenarunner', 'eo_gluerunner', 'eo_ons3objectcreated', 'fmp_twitter_streaming',
-          'fmp_twitterddb', 'fmp_comparefaces', 'fp_notification', 'fp_conversion', 'fp_sentiment', 't_payment_method', 't_ddb_encrypt_item', 'sc_add_to_cart', 'sc_update_cart',
+names = ['cs_bot', 'ep_users_sign_up', 'ep_products_table_update', 'ep_orders_create_order', 'ep_products_validate', 'ep_delivery_on_package_created', 
+          'ep_payment_validate', 'ep_warehouse_on_order_events', 'ep_warehouse_table_update', 'ep_payment_cancel_payment', 'ep_delivery_table_requests', 'ep_payment_process_payment', 
+          'ep_orders_on_event', 'ep_orders_table_update', 'ep_payment_update_payment', 'df_union', 'eo_athenarunner', 'eo_gluerunner', 'eo_ons3objectcreated', 'fmp_twitter_streaming', 
+          'fmp_twitterddb', 'fmp_comparefaces', 'fp_notification', 'fp_conversion', 'fp_sentiment', 't_payment_method', 't_ddb_encrypt_item', 'sc_add_to_cart', 'sc_update_cart', 
           'sc_list_cart', 'sc_migrate_cart', 'sc_checkout_cart', 'sc_delete_from_cart', 'tcp_download_podcast', 'tcp_check_transcribe', 'tcp_process_podcast_rss', 'tcp_upload_to_elasticsearch', 'cer_lambda',]
-tick_labels = ['bot', ' ', ' ', ' ', ' ', ' ',
-          ' ', 'eco', ' ', ' ', ' ', ' ',
-          ' ', ' ', ' ',  'ddns', ' ', 'etl', ' ', ' ',
-          'rek', ' ', ' ', 'file', ' ', '   tok', ' ', ' ', ' ',
+tick_labels = ['bot', ' ', ' ', ' ', ' ', ' ', 
+          ' ', 'eco', ' ', ' ', ' ', ' ', 
+          ' ', ' ', ' ',  'ddns', ' ', 'etl', ' ', ' ', 
+          'rek', ' ', ' ', 'file', ' ', '   tok', ' ', ' ', ' ', 
           ' ', 'cart', ' ', ' ', ' ', '      pod', ' ', ' ', 'rep']
 
 #pagurus = list(data['normalized_pagurus'].values)
@@ -253,18 +247,20 @@ fig.savefig("result/fig_13_b.pdf",bbox_inches='tight')
 
 
 
+
+
 # generate Fig 13c
 data = pd.read_csv('result/e2e_latency.csv')
 
-names = ['cs_bot', 'ep_users_sign_up', 'ep_products_table_update', 'ep_orders_create_order', 'ep_products_validate', 'ep_delivery_on_package_created',
-          'ep_payment_validate', 'ep_warehouse_on_order_events', 'ep_warehouse_table_update', 'ep_payment_cancel_payment', 'ep_delivery_table_requests', 'ep_payment_process_payment',
-          'ep_orders_on_event', 'ep_orders_table_update', 'ep_payment_update_payment', 'df_union', 'eo_athenarunner', 'eo_gluerunner', 'eo_ons3objectcreated', 'fmp_twitter_streaming',
-          'fmp_twitterddb', 'fmp_comparefaces', 'fp_notification', 'fp_conversion', 'fp_sentiment', 't_payment_method', 't_ddb_encrypt_item', 'sc_add_to_cart', 'sc_update_cart',
+names = ['cs_bot', 'ep_users_sign_up', 'ep_products_table_update', 'ep_orders_create_order', 'ep_products_validate', 'ep_delivery_on_package_created', 
+          'ep_payment_validate', 'ep_warehouse_on_order_events', 'ep_warehouse_table_update', 'ep_payment_cancel_payment', 'ep_delivery_table_requests', 'ep_payment_process_payment', 
+          'ep_orders_on_event', 'ep_orders_table_update', 'ep_payment_update_payment', 'df_union', 'eo_athenarunner', 'eo_gluerunner', 'eo_ons3objectcreated', 'fmp_twitter_streaming', 
+          'fmp_twitterddb', 'fmp_comparefaces', 'fp_notification', 'fp_conversion', 'fp_sentiment', 't_payment_method', 't_ddb_encrypt_item', 'sc_add_to_cart', 'sc_update_cart', 
           'sc_list_cart', 'sc_migrate_cart', 'sc_checkout_cart', 'sc_delete_from_cart', 'tcp_download_podcast', 'tcp_check_transcribe', 'tcp_process_podcast_rss', 'tcp_upload_to_elasticsearch', 'cer_lambda',]
-tick_labels = ['bot', ' ', ' ', ' ', ' ', ' ',
-          ' ', 'eco', ' ', ' ', ' ', ' ',
-          ' ', ' ', ' ',  'ddns', ' ', 'etl', ' ', ' ',
-          'rek', ' ', ' ', 'file', ' ', '   tok', ' ', ' ', ' ',
+tick_labels = ['bot', ' ', ' ', ' ', ' ', ' ', 
+          ' ', 'eco', ' ', ' ', ' ', ' ', 
+          ' ', ' ', ' ',  'ddns', ' ', 'etl', ' ', ' ', 
+          'rek', ' ', ' ', 'file', ' ', '   tok', ' ', ' ', ' ', 
           ' ', 'cart', ' ', ' ', ' ', '      pod', ' ', ' ', 'rep']
 
 #pagurus = list(data['normalized_pagurus'].values)
@@ -302,18 +298,20 @@ ax.legend(fontsize=22,ncol = 2,loc = 'upper left')
 fig.savefig("result/fig_13_c.pdf",bbox_inches='tight')
 
 
+
+
 # Generate Fig 13d
 data = pd.read_csv('result/e2e_latency.csv')
 
-names = ['cs_bot', 'ep_users_sign_up', 'ep_products_table_update', 'ep_orders_create_order', 'ep_products_validate', 'ep_delivery_on_package_created',
-          'ep_payment_validate', 'ep_warehouse_on_order_events', 'ep_warehouse_table_update', 'ep_payment_cancel_payment', 'ep_delivery_table_requests', 'ep_payment_process_payment',
-          'ep_orders_on_event', 'ep_orders_table_update', 'ep_payment_update_payment', 'df_union', 'eo_athenarunner', 'eo_gluerunner', 'eo_ons3objectcreated', 'fmp_twitter_streaming',
-          'fmp_twitterddb', 'fmp_comparefaces', 'fp_notification', 'fp_conversion', 'fp_sentiment', 't_payment_method', 't_ddb_encrypt_item', 'sc_add_to_cart', 'sc_update_cart',
+names = ['cs_bot', 'ep_users_sign_up', 'ep_products_table_update', 'ep_orders_create_order', 'ep_products_validate', 'ep_delivery_on_package_created', 
+          'ep_payment_validate', 'ep_warehouse_on_order_events', 'ep_warehouse_table_update', 'ep_payment_cancel_payment', 'ep_delivery_table_requests', 'ep_payment_process_payment', 
+          'ep_orders_on_event', 'ep_orders_table_update', 'ep_payment_update_payment', 'df_union', 'eo_athenarunner', 'eo_gluerunner', 'eo_ons3objectcreated', 'fmp_twitter_streaming', 
+          'fmp_twitterddb', 'fmp_comparefaces', 'fp_notification', 'fp_conversion', 'fp_sentiment', 't_payment_method', 't_ddb_encrypt_item', 'sc_add_to_cart', 'sc_update_cart', 
           'sc_list_cart', 'sc_migrate_cart', 'sc_checkout_cart', 'sc_delete_from_cart', 'tcp_download_podcast', 'tcp_check_transcribe', 'tcp_process_podcast_rss', 'tcp_upload_to_elasticsearch', 'cer_lambda',]
-tick_labels = ['bot', ' ', ' ', ' ', ' ', ' ',
-          ' ', 'eco', ' ', ' ', ' ', ' ',
-          ' ', ' ', ' ',  'ddns', ' ', 'etl', ' ', ' ',
-          'rek', ' ', ' ', 'file', ' ', '   tok', ' ', ' ', ' ',
+tick_labels = ['bot', ' ', ' ', ' ', ' ', ' ', 
+          ' ', 'eco', ' ', ' ', ' ', ' ', 
+          ' ', ' ', ' ',  'ddns', ' ', 'etl', ' ', ' ', 
+          'rek', ' ', ' ', 'file', ' ', '   tok', ' ', ' ', ' ', 
           ' ', 'cart', ' ', ' ', ' ', '      pod', ' ', ' ', 'rep']
 
 pagurus = list(data['pagurus'].values)
