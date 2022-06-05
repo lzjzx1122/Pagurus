@@ -25,20 +25,23 @@ pagurus = get_cold('pagurus')
 
 openwhisk_total, pagurus_total = 0, 0
 rows = []
-for i in range(1, 389):
-    action = i
+ 
+for i in range(0, 388):
+    action = 'utility' + str(i)
+    openwhisk_cold = openwhisk[action] if action in openwhisk else 0
+    pagurus_cold = pagurus[action] if action in pagurus else 0
+    row = {'action': i + 1, 'openwhisk': openwhisk_cold, 'pagurus': pagurus_cold}
+    rows.append(row)
+rows = sorted(rows,key=lambda x:x['action'])
+
+for i in range(0, 388):
+    action = 'utility' + str(i)
     openwhisk_cold = openwhisk[action] if action in openwhisk else 0
     pagurus_cold = pagurus[action] if action in pagurus else 0
     openwhisk_total += openwhisk_cold
     pagurus_total += pagurus_cold
 row = {'action': 'all', 'openwhisk': openwhisk_total, 'pagurus': pagurus_total}
-rows.append(row)   
-for i in range(1, 389):
-    action = i
-    openwhisk_cold = openwhisk[action] if action in openwhisk else 0
-    pagurus_cold = pagurus[action] if action in pagurus else 0
-    row = {'action': action, 'openwhisk': openwhisk_cold, 'pagurus': pagurus_cold}
-    rows.append(row)
+rows.append(row)  
 
 file_name = dir + '/cold_start.csv'
 with open(file_name, mode='w') as csv_file:
@@ -49,7 +52,6 @@ with open(file_name, mode='w') as csv_file:
         writer.writerow(row)
 
 
-
 # generate e2e_latency.csv
 def get_latency(option):
     res_file = dir + str(option) + '/result.csv'
@@ -57,10 +59,9 @@ def get_latency(option):
     res = {}
     for idx, row in df.iterrows():
         action = row['action']
-        if row['start'] == 'cold':
-            if action not in res:
-                res[action] = []
-            res[action].append(float(row['end2end latency']))
+        if action not in res:
+            res[action] = []
+        res[action].append(float(row['end2end latency']))
     return res
                         
 def div(a, b):
@@ -73,16 +74,27 @@ openwhisk = get_latency('openwhisk')
 pagurus = get_latency('pagurus')
 
 rows = []
-for i in range(1, 389):
-    action = i
-    openwhisk_mean = openwhisk[action][max(0, int(0.95 * len(openwhisk[action])) - 1)] if action in openwhisk else None
-    pagurus_mean = pagurus[action][max(0, int(0.95 * len(pagurus[action])) - 1)]  if action in pagurus else None
-    row = {'action': action, 'openwhisk': openwhisk_mean, 'pagurus': pagurus_mean, 'pagurus/openwhisk': div(pagurus_mean, openwhisk_mean)}
+for i in range(0, 388):
+    action = 'utility' + str(i)
+    if action in openwhisk:
+        openwhisk[action] = sorted(openwhisk[action])
+        openwhisk_mean = openwhisk[action][max(0, int(0.95 * len(openwhisk[action])) - 1)] 
+    else:
+        openwhisk_mean = None
+    if action in pagurus:
+        pagurus[action] = sorted(pagurus[action])
+        pagurus_mean = pagurus[action][max(0, int(0.95 * len(pagurus[action])) - 1)] 
+    else:
+        pagurus_mean = None
+    
+    row = {'action': i + 1, 'openwhisk': openwhisk_mean, 'pagurus': pagurus_mean, 'openwhisk/pagurus': div(openwhisk_mean, pagurus_mean)}
     rows.append(row)
+
+rows = sorted(rows,key=lambda x:x['action'])
 
 file_name = dir + '/e2e_latency.csv'
 with open(file_name, mode='w') as csv_file:
-    fieldnames = ['action', 'openwhisk', 'pagurus', 'pagurus/openwhisk']
+    fieldnames = ['action', 'openwhisk', 'pagurus', 'openwhisk/pagurus']
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     writer.writeheader()
     for row in rows:
